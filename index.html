@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#040806" />
+  <meta name="description" content="CODEN OFICIAL reúne em um só lugar os projetos, aplicativos, sites e plataformas que criamos, além de atualizações e canais oficiais." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <link rel="canonical" href="https://codenoficial.online/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CODEN OFICIAL" />
+  <meta property="og:title" content="CODEN OFICIAL — projetos, aplicativos e plataformas" />
+  <meta property="og:description" content="Aplicativos, sites, ferramentas digitais e atualizações reunidos em um só lugar." />
+  <meta property="og:url" content="https://codenoficial.online/" />
+  <meta property="og:image" content="https://codenoficial.online/assets/coden-oficial-logo.jpg" />
+  <title>CODEN OFICIAL — projetos, aplicativos e plataformas</title>
+  <link rel="icon" type="image/jpeg" href="assets/coden-oficial-logo.jpg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="codeRain" class="code-rain" aria-hidden="true"></canvas>
+  <div class="page-shade" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#inicio" aria-label="CODEN OFICIAL, início">
+      <img src="assets/coden-oficial-logo.jpg" alt="" />
+      <span><strong>CODEN</strong><small>OFICIAL</small></span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Navegação principal">
+      <a href="#projetos">Projetos</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#atualizacoes">Atualizações</a>
+      <a href="#suporte">Suporte</a>
+      <a href="#sobre">Sobre</a>
+    </nav>
+
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-expanded="false" aria-controls="mobileMenu" aria-label="Abrir menu">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="mobile-menu" id="mobileMenu" hidden>
+      <a href="#projetos">Projetos</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#atualizacoes">Atualizações</a>
+      <a href="#suporte">Suporte</a>
+      <a href="#sobre">Sobre</a>
+    </div>
+  </header>
+
+  <main id="inicio" class="site-main">
+    <section class="hero-panel">
+      <div class="hero-copy-block">
+        <p class="eyebrow">CODEN OFICIAL</p>
+        <h1>O criador por trás dos nossos projetos.</h1>
+        <p class="hero-text">
+          Um espaço oficial para conhecer nossos aplicativos, sites e ferramentas,
+          acompanhar novidades e encontrar os canais certos de cada projeto.
+        </p>
+        <div class="hero-actions">
+          <a class="primary-button" href="#projetos">Conhecer projetos</a>
+          <a class="secondary-button" href="#atualizacoes">Ver atualizações</a>
+        </div>
+        <div class="hero-tags" aria-label="O que você encontra na CODEN OFICIAL">
+          <span>Aplicativos</span><span>Sites</span><span>Ferramentas digitais</span><span>Atualizações</span>
+        </div>
+      </div>
+
+      <aside class="hero-side-card" aria-label="Resumo da CODEN OFICIAL">
+        <img class="hero-logo" src="assets/coden-oficial-logo.jpg" alt="Logo da CODEN OFICIAL" />
+        <div class="system-line"><i></i><span>SISTEMA OFICIAL</span><strong>ONLINE</strong></div>
+        <div class="hero-side-grid">
+          <div><strong>Ecossistema</strong><span>Projetos com identidade própria</span></div>
+          <div><strong>Foco</strong><span>Apps, sites e ferramentas digitais</span></div>
+          <div><strong>Atualizações</strong><span>Informações reunidas em um só lugar</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section-shell about-grid" id="sobre" aria-labelledby="sobre-title">
+      <div class="section-headline">
+        <p class="eyebrow">SOBRE A CODEN</p>
+        <h2 id="sobre-title">Um criador, vários projetos.</h2>
+      </div>
+      <div class="about-copy">
+        <p>A CODEN OFICIAL é o criador por trás dos projetos que desenvolvemos. Cada projeto possui objetivo, plataforma e evolução próprios, mantendo sua própria identidade dentro do mesmo ecossistema.</p>
+        <p>Este site funciona como nosso ponto central: aqui você encontra os projetos oficiais, entende o que cada um faz e acompanha as principais mudanças sem precisar procurar informações espalhadas.</p>
+      </div>
+      <div class="about-points">
+        <article><strong>01</strong><span>Projetos com propósito próprio</span></article>
+        <article><strong>02</strong><span>Experiências simples e úteis</span></article>
+        <article><strong>03</strong><span>Evolução contínua</span></article>
+      </div>
+    </section>
+
+    <section class="section-shell projects-section" id="projetos" aria-labelledby="projetos-title">
+      <div class="section-headline split-heading">
+        <div><p class="eyebrow">PROJETOS</p><h2 id="projetos-title">Conheça o ecossistema.</h2></div>
+        <p>Os produtos abaixo são desenvolvidos de forma independente e recebem melhorias conforme cada proposta.</p>
+      </div>
+
+      <div class="project-grid">
+        <article class="project-card featured-project">
+          <div class="project-topline"><span class="project-index">01</span><span class="status status-online">ONLINE</span></div>
+          <h3>SOFT Downloaders</h3>
+          <p>Ferramenta online para analisar links públicos e baixar vídeos, músicas, imagens e outros tipos de mídia. Também reúne recursos como conversão para MP3, captura de thumbnail e busca de avatar.</p>
+          <div class="project-tags"><span>Web</span><span>Download por link</span><span>Várias plataformas</span><span>Gratuito</span></div>
+          <a class="project-action" href="https://softdownloader.site/" target="_blank" rel="noreferrer">Acessar projeto ↗</a>
+        </article>
+
+        <article class="project-card">
+          <div class="project-topline"><span class="project-index">02</span><span class="status">ANDROID</span></div>
+          <h3>SOFT MUSIC</h3>
+          <p>Aplicativo Android criado para uma experiência musical própria, com recursos voltados à biblioteca, reprodução e organização de músicas no dispositivo.</p>
+          <div class="project-tags"><span>Aplicativo</span><span>Android</span><span>Música</span></div>
+          <span class="project-action project-action-muted">Projeto CODEN</span>
+        </article>
+
+        <article class="project-card">
+          <div class="project-topline"><span class="project-index">03</span><span class="status status-private">TESTE PRIVADO</span></div>
+          <h3>SOFT-IG</h3>
+          <p>Plataforma voltada ao Instagram com métricas, publicação e automações de interação. O projeto está em fase de testes privados e o acesso depende de autorização.</p>
+          <div class="project-tags"><span>WebApp</span><span>Instagram</span><span>Automação</span><span>Acesso restrito</span></div>
+          <a class="project-action" href="https://www.instagram.com/codenoficial/" target="_blank" rel="noreferrer">Pedir autorização @codenoficial ↗</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="section-shell flow-section" id="como-funciona" aria-labelledby="como-title">
+      <div class="section-headline split-heading">
+        <div><p class="eyebrow">COMO FUNCIONA</p><h2 id="como-title">Um lugar para acompanhar tudo.</h2></div>
+        <p>A CODEN OFICIAL não substitui os sites e aplicativos dos projetos. Este site organiza e conecta todos eles.</p>
+      </div>
+      <div class="flow-grid">
+        <article><strong>01</strong><h3>Descubra</h3><p>Veja quais projetos são criados pela CODEN OFICIAL e entenda rapidamente a finalidade de cada um.</p></article>
+        <article><strong>02</strong><h3>Acesse</h3><p>Entre no site ou aplicativo oficial do projeto sem depender de links espalhados ou páginas não oficiais.</p></article>
+        <article><strong>03</strong><h3>Acompanhe</h3><p>Consulte atualizações importantes e saiba quando um projeto recebe novos recursos ou mudanças relevantes.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell updates-section" id="atualizacoes" aria-labelledby="atualizacoes-title">
+      <div class="section-headline split-heading">
+        <div><p class="eyebrow">ATUALIZAÇÕES</p><h2 id="atualizacoes-title">O que mudou recentemente.</h2></div>
+        <p>Somente novidades relevantes para quem usa ou acompanha nossos projetos.</p>
+      </div>
+      <div class="update-stack">
+        <article class="update-card"><time datetime="2026-09-15">15 SET 2026</time><span>CODEN OFICIAL</span><h3>Um só lugar para acompanhar todos os projetos.</h3><p>O site oficial da marca passa a reunir os projetos, suas informações, atualizações e canais oficiais.</p></article>
+        <article class="update-card"><time datetime="2026-09-15">15 SET 2026</time><span>SOFT DOWNLOADERS</span><h3>Mais compatibilidade e uma experiência de análise mais rápida.</h3><p>O projeto recebeu melhorias no processamento de links, novas plataformas e ferramentas extras para mídia.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell support-section" id="suporte" aria-labelledby="suporte-title">
+      <div class="support-main">
+        <p class="eyebrow">SUPORTE E CONTATO</p>
+        <h2 id="suporte-title">Precisa falar com a CODEN?</h2>
+        <p>Para dúvidas gerais sobre a marca, novidades ou identificação dos nossos canais oficiais, use o Instagram ou o e-mail oficial da CODEN.</p>
+        <div class="hero-actions">
+          <a class="primary-button" href="https://www.instagram.com/codenoficial/" target="_blank" rel="noreferrer">Instagram @codenoficial ↗</a>
+          <a class="secondary-button" href="https://www.tiktok.com/@codenoficialbr" target="_blank" rel="noreferrer">TikTok @codenoficialbr ↗</a>
+          <a class="secondary-button" href="mailto:coden@codenoficial.online">coden@codenoficial.online ↗</a>
+        </div>
+      </div>
+      <div class="support-note"><strong>Suporte de projetos</strong><p>Quando a dúvida for sobre uma função específica, informe qual projeto você está usando. Isso ajuda a direcionar o atendimento e evita confundir recursos de produtos diferentes.</p></div>
+    </section>
+
+    <section class="section-shell faq-section" aria-labelledby="faq-title">
+      <p class="eyebrow">DÚVIDAS RÁPIDAS</p>
+      <h2 id="faq-title">Sobre a CODEN OFICIAL.</h2>
+      <details><summary>A CODEN OFICIAL é um único aplicativo?</summary><p>Não. CODEN OFICIAL é o criador por trás de diferentes projetos. Cada aplicativo, site ou ferramenta possui sua própria função.</p></details>
+      <details><summary>Os projetos usam o mesmo site?</summary><p>Não necessariamente. Projetos como SOFT Downloaders e SOFT-IG possuem seus próprios endereços oficiais. Este site funciona como ponto central da CODEN OFICIAL.</p></details>
+      <details><summary>Onde acompanho novidades?</summary><p>As principais atualizações aparecem nesta página e também podem ser divulgadas pelo perfil oficial @codenoficial.</p></details>
+      <details><summary>Como sei se um link ou perfil é oficial?</summary><p>Use os links publicados nesta página. Eles funcionam como referência central para os projetos e canais da CODEN OFICIAL.</p></details>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand"><img src="assets/coden-oficial-logo.jpg" alt="" /><span><strong>CODEN OFICIAL</strong><small>Criador de projetos, apps e experiências digitais.</small></span></div>
+    <div class="footer-links"><a href="#projetos">Projetos</a><a href="#atualizacoes">Atualizações</a><a href="#suporte">Suporte</a><a href="https://www.instagram.com/codenoficial/" target="_blank" rel="noreferrer">Instagram</a><a href="https://www.tiktok.com/@codenoficialbr" target="_blank" rel="noreferrer">TikTok</a><a href="mailto:coden@codenoficial.online">E-mail</a></div>
+    <p class="footer-note">© 2026 CODEN OFICIAL. Todos os projetos oficiais em um só lugar.</p>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
