@@ -1,6 +1,6 @@
 const C=window.CODEN_CONFIG||{};
 const sb=window.supabase?.createClient?.(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
-const state={user:null,profile:null,videos:[],currentId:null,liked:new Set(),saved:new Set(),profileTarget:null,fsTimer:null,channel:null};
+const state={user:null,profile:null,videos:[],currentId:null,liked:new Set(),saved:new Set(),profileTarget:null,fsTimer:null,channel:null,audioUnlocked:false};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const feed=$('#feed');
 function safe(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -42,7 +42,7 @@ function renderFeed(){
   const p=v.profiles||{};
   const liked=state.liked.has(v.id),saved=state.saved.has(v.id);
   return `<article class="video-card" data-id="${v.id}" data-user="${v.user_id}">
-   <video playsinline muted autoplay preload="auto" src="${safe(v.video_url)}"></video>
+   <video playsinline autoplay loop preload="auto" src="${safe(v.video_url)}"></video>
    <div class="tap-zone" aria-label="Reproduzir ou pausar"></div>
    <div class="video-info">
     <button class="profile-chip" data-profile="${v.user_id}"><span class="avatar-mini">${profileMarkup(p)}</span><b>@${safe(p.username||'perfil')}</b></button>
@@ -71,8 +71,7 @@ function renderFeed(){
   card.querySelector('.tap-zone').onclick=e=>{
    e.stopPropagation();
    if(document.fullscreenElement===card){showCardFsControls(card);return}
-   if(v.muted)v.muted=false;
-   v.paused?v.play().catch(()=>{}):v.pause();
+   if(v.paused){v.dataset.manualPaused='0';playVideoSmart(v)}else{v.dataset.manualPaused='1';v.pause()}
    pulse(card,v.paused?'play':'pause');
   };
   card.querySelector('.profile-chip').onclick=e=>{e.stopPropagation();openProfile(card.dataset.user)};
@@ -86,12 +85,28 @@ function renderFeed(){
   range?.addEventListener('input',e=>{e.stopPropagation();if(v.duration)v.currentTime=(Number(range.value)/1000)*v.duration});
   v.addEventListener('play',()=>syncFsButton(card));
   v.addEventListener('pause',()=>syncFsButton(card));
-  v.addEventListener('ended',()=>{v.currentTime=0});
+  v.addEventListener('ended',()=>{if(v.dataset.manualPaused!=='1'){v.currentTime=0;playVideoSmart(v)}});
  });
  observeFeed();
 }
 function pulse(card,t){const p=card.querySelector('.controls-pulse');p.innerHTML=svgIcon(t==='play'?'play':'pause',true);p.classList.add('show');setTimeout(()=>p.classList.remove('show'),450)}
-let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});state.currentId=e.target.dataset.id}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
+async function playVideoSmart(v){
+ if(!v||v.dataset.manualPaused==='1')return;
+ try{
+  v.muted=false;
+  await v.play();
+  state.audioUnlocked=true;
+ }catch(_){
+  try{v.muted=true;await v.play()}catch(__){}
+ }
+}
+function unlockCurrentAudio(){
+ state.audioUnlocked=true;
+ const card=currentCard(),v=card?.querySelector('video');
+ if(v&&v.dataset.manualPaused!=='1'){v.muted=false;v.play().catch(()=>{})}
+}
+['pointerdown','touchstart','keydown'].forEach(evt=>document.addEventListener(evt,unlockCurrentAudio,{capture:true,once:false,passive:true}));
+let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});state.currentId=e.target.dataset.id;if(v.dataset.manualPaused!=='1')playVideoSmart(v)}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
 function currentCard(){return document.querySelector(`.video-card[data-id="${state.currentId}"]`)||$('.video-card')}
 async function toggleLike(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.liked.has(id)){await sb.from('video_likes').delete().eq('user_id',state.user.id).eq('video_id',id);state.liked.delete(id)}else{await sb.from('video_likes').insert({user_id:state.user.id,video_id:id});state.liked.add(id)}const v=state.videos.find(x=>x.id===id);if(v)v.like_count=Math.max(0,(v.like_count||0)+(state.liked.has(id)?1:-1));updateCardActions(id)}
 async function toggleSave(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.saved.has(id)){await sb.from('saved_videos').delete().eq('user_id',state.user.id).eq('video_id',id);state.saved.delete(id)}else{await sb.from('saved_videos').insert({user_id:state.user.id,video_id:id});state.saved.add(id)}updateCardActions(id)}
