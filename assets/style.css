@@ -451,3 +451,120 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   }
   #publishSheet .publish-final-actions .small{margin:6px 0 0!important}
 }
+
+
+/* V19 — publicação mobile contínua, sem cartões e responsiva ao teclado */
+@media(max-width:899px){
+  #publishSheet{
+    height:var(--publish-vh,100dvh)!important;
+    min-height:0!important;
+    max-height:var(--publish-vh,100dvh)!important;
+    overflow:hidden!important;
+    background:#08090c!important;
+  }
+  #publishSheet .publish-form{
+    height:100%!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    background:#08090c!important;
+  }
+  #publishSheet .publish-step-caption{
+    height:100%!important;
+    min-height:0!important;
+    padding:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    background:#08090c!important;
+  }
+  #publishSheet .publish-step-caption.hidden{display:none!important}
+  #publishSheet .publish-topbar{
+    flex:0 0 58px!important;
+    background:#08090c!important;
+    border-bottom:1px solid #17191e!important;
+  }
+  #publishSheet .publish-final-preview{
+    flex:0 1 46vh!important;
+    height:auto!important;
+    min-height:190px!important;
+    max-height:46vh!important;
+    border:0!important;
+    border-bottom:0!important;
+    background:#000!important;
+  }
+  #publishSheet .publish-caption-section{
+    flex:1 1 auto!important;
+    min-height:118px!important;
+    display:block!important;
+    padding:16px 18px 10px!important;
+    background:#08090c!important;
+    border:0!important;
+    border-bottom:0!important;
+    overflow:auto!important;
+  }
+  #publishSheet .publish-avatar{display:none!important}
+  #publishSheet .publish-caption-wrap{
+    display:block!important;
+    position:relative!important;
+    margin:0!important;
+    padding:0 0 22px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+  }
+  #publishSheet .publish-caption-wrap textarea{
+    display:block!important;
+    width:100%!important;
+    min-height:96px!important;
+    max-height:180px!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    outline:0!important;
+    resize:none!important;
+    background:transparent!important;
+    color:#f4f5f7!important;
+    font-size:14px!important;
+    line-height:1.45!important;
+    font-family:inherit!important;
+  }
+  #publishSheet .publish-caption-wrap textarea::placeholder{
+    color:#777c86!important;
+  }
+  #publishSheet .publish-caption-wrap span{
+    position:absolute!important;
+    right:0!important;
+    bottom:0!important;
+    color:#666b74!important;
+    font-size:10px!important;
+  }
+  #publishSheet .publish-final-actions{
+    position:relative!important;
+    flex:0 0 auto!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    z-index:2!important;
+    margin:0!important;
+    padding:10px 18px calc(10px + env(safe-area-inset-bottom))!important;
+    background:#08090c!important;
+    border:0!important;
+    border-top:0!important;
+  }
+  #publishSheet .publish-final-actions .primary{
+    width:100%!important;
+    height:48px!important;
+    border:0!important;
+    border-radius:12px!important;
+    background:#5b61f6!important;
+    box-shadow:none!important;
+  }
+  #publishSheet .publish-final-actions .small{
+    min-height:0!important;
+    margin:5px 0 0!important;
+    text-align:center!important;
+  }
+  body:has(#publishSheet:not(.hidden)){
+    overflow:hidden!important;
+  }
+}
