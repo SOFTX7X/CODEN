@@ -63,7 +63,7 @@
 .video-card:fullscreen .action-rail,.video-card:fullscreen .video-info{display:none}.video-card:fullscreen~.bottom-nav,.video-card:fullscreen .bottom-nav{display:none}
 body:has(.video-card:fullscreen) .bottom-nav{display:none}
 @media(min-width:900px){.video-info{left:max(24px,calc(50% - 640px));bottom:34px}.action-rail{right:max(24px,calc(50% - 640px));bottom:34px}.bottom-nav{bottom:10px;width:430px;height:52px;opacity:.9}.video-caption{max-width:560px}.toast{bottom:74px}}
-@media(max-width:899px){.video-info{bottom:calc(78px + env(safe-area-inset-bottom))}.action-rail{bottom:calc(82px + env(safe-area-inset-bottom));right:8px}.rail-btn{width:52px}.rail-icon{font-size:25px}.video-caption{margin-left:40px;max-width:calc(100vw - 122px)}.video-card video{object-fit:cover}}
+@media(max-width:899px){.video-info{bottom:calc(78px + env(safe-area-inset-bottom))}.action-rail{bottom:calc(82px + env(safe-area-inset-bottom));right:8px}.rail-btn{width:52px}.rail-icon{font-size:25px}.video-caption{margin-left:40px;max-width:calc(100vw - 122px)}.video-card video{object-fit:contain}}
 
 
 /* V8 — Reels limpo: ícones outline, ações nas bordas e fullscreen funcional */
@@ -99,3 +99,10 @@ body:has(.video-card:fullscreen) .bottom-nav,body:has(.video-card:-webkit-full-s
  .video-card:fullscreen,.video-card:-webkit-full-screen{padding-bottom:0}
  .video-card:fullscreen video,.video-card:-webkit-full-screen video{height:100%}
 }
+
+/* Mobile polish: keep video uncropped and remove generic browser tap flash without killing keyboard focus. */
+*{-webkit-tap-highlight-color:transparent}
+button,a,[role="button"],input,label,.profile-chip,.rail-btn,.bottom-nav button,.tap-zone{touch-action:manipulation}
+button:focus,a:focus,[role="button"]:focus{outline:none}
+button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px solid rgba(255,255,255,.85);outline-offset:2px}
+@media(max-width:899px){.video-card video{object-fit:contain!important}}
