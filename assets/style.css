@@ -306,3 +306,148 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   }
   body:has(#publishSheet:not(.hidden)) #bottomNav{display:none!important}
 }
+
+/* V18 — fluxo NOVO REEL mobile, sem link externo */
+@media(max-width:899px){
+  #publishSheet{background:#08090c!important}
+  #publishSheet .publish-form,#publishSheet .publish-step{background:#08090c!important}
+  #publishSheet .publish-topbar{
+    height:58px!important;
+    grid-template-columns:56px 1fr 84px!important;
+    padding:0 12px!important;
+    background:#0b0c10!important;
+    border-bottom:1px solid #1c1e24!important;
+  }
+  #publishSheet .publish-topbar strong{
+    font-size:15px!important;
+    font-weight:800!important;
+    letter-spacing:0!important;
+  }
+  #publishSheet .publish-back{
+    font-size:34px!important;
+    line-height:1!important;
+    font-weight:300!important;
+    color:#fff!important;
+    text-align:left!important;
+  }
+  #publishSheet .publish-close{font-size:32px!important}
+  #publishSheet .publish-next{
+    font-size:12px!important;
+    font-weight:800!important;
+    color:#8c8cff!important;
+  }
+  #publishSheet .publish-next:disabled{color:#575a62!important;opacity:1!important}
+
+  #publishSheet .publish-step-select{overflow:hidden!important}
+  #publishSheet .publish-select-preview{
+    height:calc(100dvh - 58px)!important;
+    max-height:none!important;
+    border:0!important;
+    background:#000!important;
+  }
+  #publishSheet .publish-select-preview video{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    background:#000!important;
+  }
+  #publishSheet .publish-empty{
+    inset:0!important;
+    background:#0b0c10!important;
+    gap:10px!important;
+    padding:30px 24px 92px!important;
+  }
+  #publishSheet .publish-empty-icon{
+    width:64px!important;height:64px!important;
+    border-radius:50%!important;
+    border:1px solid #30333a!important;
+    background:#15171d!important;
+    display:grid!important;place-items:center!important;
+    padding:0!important;
+  }
+  #publishSheet .publish-empty-icon svg{
+    width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round
+  }
+  #publishSheet .publish-empty-icon svg path:last-child{fill:#fff;stroke:none}
+  #publishSheet .publish-empty strong{font-size:14px!important}
+  #publishSheet .publish-empty small{font-size:12px!important;color:#90949d!important;line-height:1.45!important}
+  #publishSheet .publish-empty-picker{
+    margin-top:10px;
+    min-width:174px;height:44px;
+    padding:0 18px;
+    display:inline-flex;align-items:center;justify-content:center;
+    border-radius:10px;
+    background:#5b61f6;
+    color:#fff;
+    font-size:12px;font-weight:800;
+  }
+  #publishSheet .publish-change{
+    right:14px!important;bottom:calc(18px + env(safe-area-inset-bottom))!important;
+    height:40px;display:flex;align-items:center;
+    padding:0 14px!important;
+    background:rgba(10,10,12,.84)!important;
+    border:1px solid rgba(255,255,255,.18)!important;
+    border-radius:10px!important;
+    font-size:11px!important;
+    backdrop-filter:blur(8px);
+  }
+
+  #publishSheet .publish-step-caption{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
+  #publishSheet .publish-final-preview{
+    height:48dvh!important;
+    max-height:none!important;
+    border-bottom:1px solid #17191e!important;
+    background:#000!important;
+  }
+  #publishSheet .publish-final-preview video{object-fit:contain!important}
+  #publishSheet .publish-caption-section{
+    display:grid!important;
+    grid-template-columns:42px 1fr!important;
+    gap:11px!important;
+    align-items:start!important;
+    padding:15px 14px 18px!important;
+    background:#0b0c10!important;
+    border-bottom:1px solid #181a20!important;
+  }
+  #publishSheet .publish-avatar{
+    width:42px;height:42px;border-radius:50%;
+    overflow:hidden;background:#202329;
+    display:grid;place-items:center;
+    font-size:12px;font-weight:800;color:#fff;
+  }
+  #publishSheet .publish-avatar img{width:100%;height:100%;object-fit:cover}
+  #publishSheet .publish-caption-wrap{
+    margin:0!important;
+    padding:1px 0 22px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+  }
+  #publishSheet .publish-caption-wrap textarea{
+    min-height:94px!important;
+    max-height:160px!important;
+    padding:0!important;
+    font-size:14px!important;
+    line-height:1.45!important;
+    color:#fff!important;
+  }
+  #publishSheet .publish-caption-wrap textarea::placeholder{color:#777c86!important}
+  #publishSheet .publish-caption-wrap span{right:0!important;bottom:0!important;color:#6f737c!important;font-size:10px!important}
+  #publishSheet .publish-final-actions{
+    position:fixed!important;
+    left:0!important;right:0!important;bottom:0!important;
+    z-index:8!important;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom))!important;
+    background:#0b0c10!important;
+    border-top:1px solid #1d1f25!important;
+  }
+  #publishSheet .publish-final-actions .primary{
+    width:100%!important;height:50px!important;
+    border-radius:12px!important;
+    background:#5b61f6!important;
+    color:#fff!important;
+    font-size:13px!important;
+    font-weight:800!important;
+  }
+  #publishSheet .publish-final-actions .small{margin:6px 0 0!important}
+}
