@@ -181,7 +181,7 @@ function setupRealtime(){if(!sb)return;state.channel?.unsubscribe?.();let timer;
 $('#likeProfileBtn').onclick=toggleProfileLike;$('#editProfileBtn').onclick=openEditProfile;$('#commentForm').onsubmit=async e=>{e.preventDefault();if(!await ensureProfile())return;const body=$('#commentInput').value.trim();if(!body)return;const {error}=await sb.from('comments').insert({video_id:state.currentId,user_id:state.user.id,body});if(error)return toast(error.message);$('#commentInput').value='';const v=state.videos.find(x=>x.id===state.currentId);if(v)v.comment_count=(v.comment_count||0)+1;updateCommentCount(state.currentId);await openComments()};
 function updateCommentCount(id){const card=document.querySelector(`.video-card[data-id="${id}"]`),v=state.videos.find(x=>x.id===id);if(card&&v){const c=card.querySelector('.comment-btn .rail-count');if(c)c.textContent=v.comment_count||0}}
 let publishPreviewUrl=null,avatarPreviewUrl=null;
-function setPublishStep(step){state.publishStep=step;$('#publishStepSelect').classList.toggle('hidden',step!==1);$('#publishStepCaption').classList.toggle('hidden',step!==2);if(step===2){const final=$('#publishFinalPreview');if(publishPreviewUrl){final.src=publishPreviewUrl;final.load();final.play().catch(()=>{});}setTimeout(()=>$('#videoTitle')?.focus({preventScroll:true}),120)}}
+function setPublishStep(step){state.publishStep=step;$('#publishStepSelect').classList.toggle('hidden',step!==1);$('#publishStepCaption').classList.toggle('hidden',step!==2);if(step===2){const final=$('#publishFinalPreview');if(publishPreviewUrl){final.src=publishPreviewUrl;final.load();final.play().catch(()=>{});}requestAnimationFrame(()=>{const sheet=$('#publishSheet');sheet?.classList.remove('keyboard-open');document.documentElement.style.setProperty('--publish-vh',`${Math.round(window.visualViewport?.height||window.innerHeight)}px`);});}}
 function resetPublishPreview(){if(publishPreviewUrl)URL.revokeObjectURL(publishPreviewUrl);publishPreviewUrl=null;state.publishFile=null;const p=$('#publishPreview'),f=$('#publishFinalPreview');for(const v of [p,f]){if(v){v.pause();v.removeAttribute('src');v.load()}}$('#publishEmpty')?.classList.remove('hidden');$('#publishChange')?.classList.add('hidden');$('#publishPreviewWrap')?.classList.remove('has-media');$('#publishNext').disabled=true}
 function resetPublishFlow(){resetPublishPreview();$('#publishForm')?.reset();$('#videoTitle').value='';$('#captionCount').textContent='0/500';$('#publishStatus').textContent='';setPublishStep(1)}
 function setPublishFile(file){resetPublishPreview();if(!file)return;if(!file.type?.startsWith('video/'))return toast('Selecione um arquivo de vídeo.');state.publishFile=file;publishPreviewUrl=URL.createObjectURL(file);const v=$('#publishPreview');v.src=publishPreviewUrl;v.load();v.play().catch(()=>{});$('#publishEmpty').classList.add('hidden');$('#publishChange').classList.remove('hidden');$('#publishPreviewWrap').classList.add('has-media');$('#publishNext').disabled=false}
@@ -201,8 +201,11 @@ sb?.auth.onAuthStateChange(async(_event,session)=>{state.user=session?.user||nul
 
 // V19 — mantém a tela de publicação acima do teclado móvel
 function syncPublishViewport(){
-  const h=window.visualViewport?.height||window.innerHeight;
+  const vv=window.visualViewport;
+  const h=vv?.height||window.innerHeight;
   document.documentElement.style.setProperty('--publish-vh',`${Math.round(h)}px`);
+  const keyboardOpen=!!vv && (window.innerHeight-vv.height>120);
+  $('#publishSheet')?.classList.toggle('keyboard-open',keyboardOpen);
 }
 syncPublishViewport();
 window.visualViewport?.addEventListener('resize',syncPublishViewport);
