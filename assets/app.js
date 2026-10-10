@@ -6,10 +6,10 @@ const feed=$('#feed');
 function safe(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function initial(u='?'){return (u.replace('@','').trim()[0]||'?').toUpperCase()}
 function toast(msg){const n=document.createElement('div');n.textContent=msg;Object.assign(n.style,{position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',background:'#151515',border:'1px solid #333',color:'#fff',padding:'10px 14px',borderRadius:'10px',zIndex:120,fontSize:'12px'});document.body.appendChild(n);setTimeout(()=>n.remove(),2200)}
-function openSheet(id){if(id==='actionsSheet'){document.body.classList.add('actions-open');$('#'+id).classList.remove('hidden');return}$('#sheetBackdrop').classList.remove('hidden');$('#'+id).classList.remove('hidden')}
+function openSheet(id){$('#sheetBackdrop').classList.remove('hidden');$('#'+id).classList.remove('hidden')}
 function closeSheet(id){$('#'+id).classList.add('hidden');if(!$$('.sheet:not(.hidden),.mini-sheet:not(.hidden)').length)$('#sheetBackdrop').classList.add('hidden')}
 function closeAllSheets(){closeMini();$$('.sheet').forEach(s=>s.classList.add('hidden'));$('#sheetBackdrop').classList.add('hidden')}
-function closeMini(){$('#actionsSheet').classList.add('hidden');document.body.classList.remove('actions-open')}
+function closeMini(){$('#actionsSheet').classList.add('hidden')}
 async function ensureAnonymousSession(){if(!sb)return false;if(state.user)return true;let {data}=await sb.auth.getSession();if(data.session?.user){state.user=data.session.user;return true}const {data:anon,error}=await sb.auth.signInAnonymously();if(error){console.error(error);toast('Ative Anonymous Sign-Ins no Supabase para publicar e interagir.');return false}state.user=anon.user||anon.session?.user||null;return !!state.user}
 async function loadOwnProfile(){if(!state.user)return;const {data}=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();state.profile=data||null}
 async function ensureProfile(){if(!await ensureAnonymousSession())return false;await loadOwnProfile();if(state.profile)return true;openSheet('profileSetupSheet');return false}
@@ -18,45 +18,14 @@ async function loadFeed(){if(!sb){feed.innerHTML='<div class="empty">Supabase n�
 async function loadFlags(){state.liked.clear();state.saved.clear();if(!state.user)return;const [{data:l},{data:s}]=await Promise.all([sb.from('video_likes').select('video_id').eq('user_id',state.user.id),sb.from('saved_videos').select('video_id').eq('user_id',state.user.id)]);(l||[]).forEach(x=>state.liked.add(x.video_id));(s||[]).forEach(x=>state.saved.add(x.video_id))}
 function renderFeed(){if(!state.videos.length){feed.innerHTML='<div class="empty"><div><div>Ainda não há vídeos publicados.</div><button id="emptyStart">CRIAR MEU PERFIL E PUBLICAR</button></div></div>';$('#emptyStart')?.addEventListener('click',async()=>{if(await ensureProfile())openSheet('publishSheet')});return}
  feed.innerHTML=state.videos.map(v=>{const p=v.profiles||{};const avatar=p.avatar_url?`<img src="${safe(p.avatar_url)}" alt="">`:initial(p.username||'perfil');return `<article class="video-card" data-id="${v.id}" data-user="${v.user_id}"><video playsinline preload="metadata" src="${safe(v.video_url)}"></video><div class="tap-zone"></div><button class="profile-chip" data-profile="${v.user_id}"><span class="avatar-mini">${avatar}</span><b>@${safe(p.username||'perfil')}</b></button><div class="controls-pulse">▶</div></article>`}).join('');
- $$('.video-card').forEach(card=>{const v=card.querySelector('video');v.addEventListener('loadedmetadata',()=>{if(v.videoHeight>v.videoWidth)card.classList.add('is-portrait');positionCardUi(card)});card.querySelector('.tap-zone').onclick=()=>toggleActions(card);card.querySelector('.profile-chip').onclick=e=>{e.stopPropagation();openProfile(card.dataset.user)};v.addEventListener('ended',()=>{v.currentTime=0})});
- positionAllCardUi();
+ $$('.video-card').forEach(card=>{const v=card.querySelector('video');v.addEventListener('loadedmetadata',()=>{if(v.videoHeight>v.videoWidth)card.classList.add('is-portrait')});card.querySelector('.tap-zone').onclick=()=>toggleActions(card);card.querySelector('.profile-chip').onclick=e=>{e.stopPropagation();openProfile(card.dataset.user)};v.addEventListener('ended',()=>{v.currentTime=0})});
  observeFeed();
 }
-
-function mediaBox(card){
-  const v=card?.querySelector('video');
-  if(!card||!v||!v.videoWidth||!v.videoHeight)return null;
-  const r=card.getBoundingClientRect();
-  const ratio=v.videoWidth/v.videoHeight;
-  const boxRatio=r.width/r.height;
-  let w,h,left,top;
-  if(ratio>boxRatio){w=r.width;h=w/ratio;left=r.left;top=r.top+(r.height-h)/2}
-  else{h=r.height;w=h*ratio;top=r.top;left=r.left+(r.width-w)/2}
-  return {left,top,width:w,height:h,right:left+w,bottom:top+h,card:r};
-}
-function positionCardUi(card){
-  if(!card)return;
-  const b=mediaBox(card);
-  if(!b)return;
-  const left=Math.max(10,b.left-b.card.left+12);
-  const bottom=Math.max(10,b.card.bottom-b.bottom+12);
-  card.style.setProperty('--media-left',left+'px');
-  card.style.setProperty('--media-bottom',bottom+'px');
-}
-function positionAllCardUi(){ $$('.video-card').forEach(positionCardUi); }
-function positionActions(card){
-  const b=mediaBox(card); if(!b)return;
-  const right=Math.max(10,window.innerWidth-b.right+12);
-  const bottom=Math.max(10,window.innerHeight-b.bottom+12);
-  document.documentElement.style.setProperty('--actions-right',right+'px');
-  document.documentElement.style.setProperty('--actions-bottom',bottom+'px');
-}
-window.addEventListener('resize',()=>{positionAllCardUi();const c=currentCard();if(c&&!$('#actionsSheet').classList.contains('hidden'))positionActions(c)});
 let io;
 function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});state.currentId=e.target.dataset.id}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
 function currentCard(){return document.querySelector(`.video-card[data-id="${state.currentId}"]`)||$('.video-card')}
-function toggleActions(card){state.currentId=card.dataset.id;const v=card.querySelector('video');if(document.fullscreenElement===card){showFullscreenControls(card);return}if(!$('#actionsSheet').classList.contains('hidden')){closeMini();return}$('#actionLike').textContent=state.liked.has(state.currentId)?'♥':'♡';$('#actionSave').textContent=state.saved.has(state.currentId)?'SALVO':'SALVAR';positionActions(card);openSheet('actionsSheet');}
-async function toggleLike(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.liked.has(id)){await sb.from('video_likes').delete().eq('user_id',state.user.id).eq('video_id',id);state.liked.delete(id)}else{await sb.from('video_likes').insert({user_id:state.user.id,video_id:id});state.liked.add(id)}$('#actionLike').textContent=state.liked.has(id)?'♥':'♡'}
+function toggleActions(card){state.currentId=card.dataset.id;const v=card.querySelector('video');if(document.fullscreenElement===card){showFullscreenControls(card);return}$('#actionLike').textContent=state.liked.has(state.currentId)?'♥ CURTIDO':'♡ CURTIR';$('#actionSave').textContent=state.saved.has(state.currentId)?'SALVO':'SALVAR';openSheet('actionsSheet');}
+async function toggleLike(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.liked.has(id)){await sb.from('video_likes').delete().eq('user_id',state.user.id).eq('video_id',id);state.liked.delete(id)}else{await sb.from('video_likes').insert({user_id:state.user.id,video_id:id});state.liked.add(id)}$('#actionLike').textContent=state.liked.has(id)?'♥ CURTIDO':'♡ CURTIR'}
 async function toggleSave(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.saved.has(id)){await sb.from('saved_videos').delete().eq('user_id',state.user.id).eq('video_id',id);state.saved.delete(id)}else{await sb.from('saved_videos').insert({user_id:state.user.id,video_id:id});state.saved.add(id)}$('#actionSave').textContent=state.saved.has(id)?'SALVO':'SALVAR'}
 async function openComments(){closeMini();const id=state.currentId;if(!id)return;const {data,error}=await sb.from('comments').select('id,body,created_at,profiles(username)').eq('video_id',id).order('created_at',{ascending:true});if(error)return toast(error.message);$('#commentsList').innerHTML=(data||[]).map(c=>`<div class="comment"><b>@${safe(c.profiles?.username||'usuario')}</b><p>${safe(c.body)}</p></div>`).join('')||'<p class="muted small">Nenhum comentário ainda.</p>';openSheet('commentsSheet')}
 async function shareCurrent(){const v=state.videos.find(x=>x.id===state.currentId);if(!v)return;if(navigator.share)await navigator.share({title:v.title||'Vídeo',url:v.video_url}).catch(()=>{});else{await navigator.clipboard.writeText(v.video_url).catch(()=>{});toast('Link copiado.')}closeAllSheets()}
