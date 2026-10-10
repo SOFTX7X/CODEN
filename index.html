@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <title>CODEN Video</title>
-  <link rel="stylesheet" href="assets/style.css?v=6" />
+  <link rel="stylesheet" href="assets/style.css?v=7" />
 </head>
 <body>
   <main id="app">
@@ -57,10 +57,34 @@
     <div class="profile-card">
       <div id="profileAvatar" class="avatar">C</div>
       <div class="profile-meta"><h1 id="profileHandle">@perfil</h1><p id="profileDisplay">Perfil de vídeos</p><div class="profile-stats"><span><b id="profileLikes">0</b> likes</span><span><b id="profileVideos">0</b> vídeos</span></div></div>
-      <button id="likeProfileBtn" class="outline">♡ CURTIR PERFIL</button>
+      <button id="likeProfileBtn" class="outline">♡ CURTIR PERFIL</button><button id="editProfileBtn" class="outline profile-edit-btn">EDITAR PERFIL</button>
     </div>
     <div id="profileGrid" class="profile-grid"></div>
   </section>
+
+
+  <nav id="bottomNav" class="bottom-nav" aria-label="Navegação principal">
+    <button data-nav="home"><span>⌂</span><small>INÍCIO</small></button>
+    <button data-nav="search"><span>⌕</span><small>PESQUISAR</small></button>
+    <button data-nav="publish" class="nav-plus"><span>＋</span></button>
+    <button data-nav="profile"><span id="navAvatar">●</span><small>PERFIL</small></button>
+  </nav>
+
+  <aside id="searchSheet" class="sheet hidden" aria-label="Pesquisar">
+    <div class="sheet-head"><strong>PESQUISAR</strong><button data-close="searchSheet" class="icon-btn">×</button></div>
+    <div class="search-wrap"><input id="searchInput" placeholder="Pesquisar vídeos ou @perfil" /><div id="searchResults" class="search-results"></div></div>
+  </aside>
+
+  <aside id="profileEditSheet" class="sheet hidden" aria-label="Editar perfil">
+    <div class="sheet-head"><strong>EDITAR PERFIL</strong><button data-close="profileEditSheet" class="icon-btn">×</button></div>
+    <form id="profileEditForm" class="publish-form">
+      <label class="upload-box"><input id="avatarFile" type="file" accept="image/*" hidden /><span>ESCOLHER FOTO DE PERFIL</span><small id="pickedAvatar">Nenhuma foto selecionada</small></label>
+      <input id="editUsername" maxlength="24" placeholder="@usuario" required />
+      <input id="editDisplayName" maxlength="60" placeholder="Nome (opcional)" />
+      <button class="primary" type="submit">SALVAR PERFIL</button>
+      <p id="profileEditStatus" class="muted small"></p>
+    </form>
+  </aside>
 
   <div id="fullscreenControls" class="fullscreen-controls hidden">
     <button id="fsPlayPause">PAUSAR</button>
@@ -69,6 +93,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js"></script>
-  <script src="assets/app.js?v=6"></script>
+  <script src="assets/app.js?v=7"></script>
 </body>
 </html>
