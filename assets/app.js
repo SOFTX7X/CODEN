@@ -1,6 +1,6 @@
 const C=window.CODEN_CONFIG||{};
 const sb=window.supabase?.createClient?.(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
-const state={user:null,profile:null,videos:[],currentId:null,liked:new Set(),saved:new Set(),profileTarget:null,fsTimer:null,channel:null,audioUnlocked:false,profileCache:new Map()};
+const state={user:null,profile:null,videos:[],currentId:null,liked:new Set(),saved:new Set(),profileTarget:null,fsTimer:null,channel:null,audioUnlocked:false,profileCache:new Map(),fsScrollTop:0};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const feed=$('#feed');
 function safe(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -75,6 +75,8 @@ function renderFeed(){
    pulse(card,v.paused?'play':'pause');
   };
   card.querySelector('.profile-chip').onclick=e=>{e.stopPropagation();openProfile(card.dataset.user)};
+  card.querySelector('.video-caption')?.addEventListener('click',e=>{e.stopPropagation()});
+  card.querySelector('.video-caption')?.addEventListener('pointerdown',e=>{e.stopPropagation()});
   card.querySelector('.like-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleLike()};
   card.querySelector('.comment-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;openComments()};
   card.querySelector('.save-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleSave()};
@@ -120,10 +122,23 @@ async function openComments(){const id=state.currentId;if(!id)return;const {data
 async function shareCurrent(){const v=state.videos.find(x=>x.id===state.currentId);if(!v)return;if(navigator.share)await navigator.share({title:v.title||'Vídeo',url:v.video_url}).catch(()=>{});else{await navigator.clipboard.writeText(v.video_url).catch(()=>{});toast('Link copiado.')}}
 function syncFsButton(card){const v=card?.querySelector('video'),b=card?.querySelector('.fs-toggle');if(!v||!b)return;b.innerHTML=svgIcon(v.paused?'play':'pause',true);b.setAttribute('aria-label',v.paused?'Reproduzir':'Pausar')}
 function showCardFsControls(card){if(!card)return;card.classList.add('fs-visible');syncFsButton(card);clearTimeout(state.fsTimer);state.fsTimer=setTimeout(()=>card.classList.remove('fs-visible'),3000)}
-function fullscreenCurrent(){const card=currentCard();if(!card)return;const req=card.requestFullscreen||card.webkitRequestFullscreen;if(req){Promise.resolve(req.call(card)).then(()=>{setTimeout(()=>showCardFsControls(card),80)}).catch(()=>{})}}
+function lockFullscreenFeed(){state.fsScrollTop=feed.scrollTop;feed.classList.add('fullscreen-locked')}
+function unlockFullscreenFeed(){feed.classList.remove('fullscreen-locked');requestAnimationFrame(()=>{feed.scrollTop=state.fsScrollTop})}
+function fullscreenCurrent(){const card=currentCard();if(!card)return;state.fsScrollTop=feed.scrollTop;const req=card.requestFullscreen||card.webkitRequestFullscreen;if(req){Promise.resolve(req.call(card)).catch(()=>{})}}
 function exitFullscreen(){const exit=document.exitFullscreen||document.webkitExitFullscreen;if(exit)exit.call(document)}
-document.addEventListener('fullscreenchange',()=>{const card=document.fullscreenElement;if(card?.classList?.contains('video-card')){card.classList.remove('fs-visible');clearTimeout(state.fsTimer)}else{$$('.video-card').forEach(c=>c.classList.remove('fs-visible'));clearTimeout(state.fsTimer)}});
-document.addEventListener('webkitfullscreenchange',()=>{const card=document.webkitFullscreenElement;if(card?.classList?.contains('video-card')){card.classList.remove('fs-visible');clearTimeout(state.fsTimer)}else{$$('.video-card').forEach(c=>c.classList.remove('fs-visible'));clearTimeout(state.fsTimer)}});
+function handleFullscreenChange(){
+ const card=document.fullscreenElement||document.webkitFullscreenElement;
+ clearTimeout(state.fsTimer);
+ if(card?.classList?.contains('video-card')){
+  lockFullscreenFeed();
+  requestAnimationFrame(()=>showCardFsControls(card));
+ }else{
+  $$('.video-card').forEach(c=>c.classList.remove('fs-visible'));
+  unlockFullscreenFeed();
+ }
+}
+document.addEventListener('fullscreenchange',handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange',handleFullscreenChange);
 function pauseFeedForOverlay(){
  $$('.video-card video').forEach(v=>{v.pause();v.muted=true});
 }

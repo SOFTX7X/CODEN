@@ -132,3 +132,10 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   .profile-thumb video{pointer-events:none}
   .sheet{will-change:transform}
 }
+
+
+/* V14 — fullscreen sem rolagem + legenda não pausa o player */
+.feed.fullscreen-locked{overflow:hidden!important;scroll-snap-type:none!important;overscroll-behavior:none!important}
+.video-card:fullscreen,.video-card:-webkit-full-screen{overscroll-behavior:none!important}
+.video-card:fullscreen .tap-zone,.video-card:-webkit-full-screen .tap-zone{touch-action:none!important}
+.video-caption{pointer-events:auto!important;touch-action:manipulation}
