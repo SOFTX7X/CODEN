@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <title>CODEN Video</title>
-  <link rel="stylesheet" href="assets/style.css?v=7" />
+  <link rel="stylesheet" href="assets/style.css?v=8" />
 </head>
 <body>
   <main id="app">
@@ -64,10 +64,10 @@
 
 
   <nav id="bottomNav" class="bottom-nav" aria-label="Navegação principal">
-    <button data-nav="home"><span>⌂</span><small>INÍCIO</small></button>
-    <button data-nav="search"><span>⌕</span><small>PESQUISAR</small></button>
-    <button data-nav="publish" class="nav-plus"><span>＋</span></button>
-    <button data-nav="profile"><span id="navAvatar">●</span><small>PERFIL</small></button>
+    <button data-nav="home" aria-label="Início"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 10.8 12 3l9 7.8v9.7a.5.5 0 0 1-.5.5H15v-6H9v6H3.5a.5.5 0 0 1-.5-.5z"/></svg></span><small>INÍCIO</small></button>
+    <button data-nav="search" aria-label="Pesquisar"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></svg></span><small>PESQUISAR</small></button>
+    <button data-nav="publish" class="nav-plus" aria-label="Publicar"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button>
+    <button data-nav="profile" aria-label="Perfil"><span id="navAvatar" class="nav-avatar">P</span><small>PERFIL</small></button>
   </nav>
 
   <aside id="searchSheet" class="sheet hidden" aria-label="Pesquisar">
@@ -86,13 +86,9 @@
     </form>
   </aside>
 
-  <div id="fullscreenControls" class="fullscreen-controls hidden">
-    <button id="fsPlayPause">PAUSAR</button>
-    <button id="fsExit">VOLTAR À TELA NORMAL</button>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js"></script>
-  <script src="assets/app.js?v=7"></script>
+  <script src="assets/app.js?v=8"></script>
 </body>
 </html>

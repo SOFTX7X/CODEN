@@ -17,22 +17,98 @@ async function loadFlags(){state.liked.clear();state.saved.clear();if(!state.use
 async function enrichCounts(rows){if(!rows.length)return rows;await Promise.all(rows.map(async v=>{const [{count:likes},{count:comments}]=await Promise.all([sb.from('video_likes').select('*',{count:'exact',head:true}).eq('video_id',v.id),sb.from('comments').select('*',{count:'exact',head:true}).eq('video_id',v.id)]);v.like_count=likes||0;v.comment_count=comments||0}));return rows}
 async function loadFeed({keepPosition=true}={}){if(!sb){feed.innerHTML='<div class="empty">Supabase não conectado.</div>';return}const oldId=keepPosition?state.currentId:null;const {data,error}=await sb.from('videos').select('id,user_id,title,video_url,created_at,profiles!videos_user_id_fkey(username,display_name,avatar_url)').eq('status','published').order('created_at',{ascending:false}).limit(50);if(error){feed.innerHTML=`<div class="empty">${safe(error.message)}</div>`;return}state.videos=await enrichCounts(data||[]);await loadFlags();renderFeed();if(oldId){const el=document.querySelector(`.video-card[data-id="${oldId}"]`);el?.scrollIntoView({block:'start'})}}
 function profileMarkup(p){return p?.avatar_url?`<img src="${safe(p.avatar_url)}" alt="">`:initial(p?.username||'perfil')}
-function actionButton(cls,icon,label,count=''){return `<button class="rail-btn ${cls}"><span class="rail-icon">${icon}</span><span class="rail-label">${label}</span>${count!==''?`<b class="rail-count">${count}</b>`:''}</button>`}
-function renderFeed(){if(!state.videos.length){feed.innerHTML='<div class="empty"><div><div>Ainda não há vídeos publicados.</div><button id="emptyStart">PUBLICAR O PRIMEIRO</button></div></div>';$('#emptyStart')?.addEventListener('click',async()=>{if(await ensureProfile())openSheet('publishSheet')});return}
- feed.innerHTML=state.videos.map(v=>{const p=v.profiles||{};return `<article class="video-card" data-id="${v.id}" data-user="${v.user_id}"><video playsinline muted autoplay preload="auto" src="${safe(v.video_url)}"></video><div class="tap-zone"></div><div class="video-info"><button class="profile-chip" data-profile="${v.user_id}"><span class="avatar-mini">${profileMarkup(p)}</span><b>@${safe(p.username||'perfil')}</b></button>${v.title?`<p class="video-caption">${safe(v.title)}</p>`:''}</div><aside class="action-rail">${actionButton('like-btn',state.liked.has(v.id)?'♥':'♡','CURTIR',v.like_count)}${actionButton('comment-btn','○','COMENTAR',v.comment_count)}${actionButton('save-btn',state.saved.has(v.id)?'▣':'□','SALVAR')}${actionButton('share-btn','↗','ENVIAR')}${actionButton('fs-btn','⛶','TELA CHEIA')}</aside><div class="controls-pulse">▶</div></article>`}).join('');
- $$('.video-card').forEach(card=>{const v=card.querySelector('video');v.addEventListener('loadedmetadata',()=>{if(v.videoHeight>v.videoWidth)card.classList.add('is-portrait')});v.addEventListener('error',()=>console.error('Falha ao carregar vídeo',v.currentSrc||v.src,v.error));card.querySelector('.tap-zone').onclick=()=>{if(v.muted)v.muted=false;v.paused?v.play().catch(()=>{}):v.pause();pulse(card,v.paused?'▶':'Ⅱ')};card.querySelector('.profile-chip').onclick=e=>{e.stopPropagation();openProfile(card.dataset.user)};card.querySelector('.like-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleLike()};card.querySelector('.comment-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;openComments()};card.querySelector('.save-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleSave()};card.querySelector('.share-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;shareCurrent()};card.querySelector('.fs-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;fullscreenCurrent()};v.addEventListener('ended',()=>{v.currentTime=0})});observeFeed()}
-function pulse(card,t){const p=card.querySelector('.controls-pulse');p.textContent=t;p.classList.add('show');setTimeout(()=>p.classList.remove('show'),500)}
+function svgIcon(name,filled=false){
+ const common='viewBox="0 0 24 24" aria-hidden="true"';
+ const icons={
+  heart: filled?`<svg ${common} class="icon-svg is-filled"><path d="M12 21s-7.2-4.35-9.42-8.3C.74 9.42 2.14 5.5 5.7 4.5c2.15-.6 4.15.22 5.3 1.75C12.15 4.72 14.15 3.9 16.3 4.5c3.56 1 4.96 4.92 3.12 8.2C17.2 16.65 12 21 12 21Z"/></svg>`:`<svg ${common} class="icon-svg"><path d="M20.8 5.7c-2.1-2.2-5.6-2.3-7.8-.2L12 6.5l-1-1c-2.2-2.1-5.7-2-7.8.2-2.2 2.3-2 6 .3 8.2L12 21l8.5-7.1c2.3-2.2 2.5-5.9.3-8.2Z"/></svg>`,
+  comment:`<svg ${common} class="icon-svg"><path d="M21 11.4a8.4 8.4 0 0 1-9 8.4 9.5 9.5 0 0 1-3.8-.8L3 21l1.5-4.5A8.4 8.4 0 1 1 21 11.4Z"/></svg>`,
+  save: filled?`<svg ${common} class="icon-svg is-filled"><path d="M6 3.5h12v17L12 17l-6 3.5Z"/></svg>`:`<svg ${common} class="icon-svg"><path d="M6 3.5h12v17L12 17l-6 3.5Z"/></svg>`,
+  share:`<svg ${common} class="icon-svg"><path d="m21 3-8.2 18-2.3-7.5L3 11.2 21 3Z"/><path d="m10.5 13.5 4.4-4.4"/></svg>`,
+  fullscreen:`<svg ${common} class="icon-svg"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>`,
+  shrink:`<svg ${common} class="icon-svg"><path d="M8 8H3V3M16 8h5V3M8 16H3v5M16 16h5v5"/><path d="M3 8h5V3M21 8h-5V3M3 16h5v5M21 16h-5v5"/></svg>`,
+  play:`<svg ${common} class="icon-svg is-filled"><path d="m8 5 11 7-11 7Z"/></svg>`,
+  pause:`<svg ${common} class="icon-svg is-filled"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>`
+ };
+ return icons[name]||'';
+}
+function actionButton(cls,icon,label,count=''){return `<button class="rail-btn ${cls}" aria-label="${label}"><span class="rail-icon">${icon}</span>${count!==''?`<b class="rail-count">${count}</b>`:''}</button>`}
+function renderFeed(){
+ if(!state.videos.length){
+  feed.innerHTML='<div class="empty"><div><div>Ainda não há vídeos publicados.</div><button id="emptyStart">PUBLICAR O PRIMEIRO</button></div></div>';
+  $('#emptyStart')?.addEventListener('click',async()=>{if(await ensureProfile())openSheet('publishSheet')});
+  return;
+ }
+ feed.innerHTML=state.videos.map(v=>{
+  const p=v.profiles||{};
+  const liked=state.liked.has(v.id),saved=state.saved.has(v.id);
+  return `<article class="video-card" data-id="${v.id}" data-user="${v.user_id}">
+   <video playsinline muted autoplay preload="auto" src="${safe(v.video_url)}"></video>
+   <div class="tap-zone" aria-label="Reproduzir ou pausar"></div>
+   <div class="video-info">
+    <button class="profile-chip" data-profile="${v.user_id}"><span class="avatar-mini">${profileMarkup(p)}</span><b>@${safe(p.username||'perfil')}</b></button>
+    ${v.title?`<p class="video-caption">${safe(v.title)}</p>`:''}
+   </div>
+   <aside class="action-rail">
+    ${actionButton('like-btn',svgIcon('heart',liked),'Curtir',v.like_count)}
+    ${actionButton('comment-btn',svgIcon('comment'),'Comentar',v.comment_count)}
+    ${actionButton('save-btn',svgIcon('save',saved),'Salvar')}
+    ${actionButton('share-btn',svgIcon('share'),'Compartilhar')}
+    ${actionButton('fs-btn',svgIcon('fullscreen'),'Tela cheia')}
+   </aside>
+   <div class="controls-pulse">${svgIcon('play',true)}</div>
+   <div class="fs-ui" aria-hidden="true">
+    <button class="fs-toggle" aria-label="Pausar">${svgIcon('pause',true)}</button>
+    <input class="fs-range" type="range" min="0" max="1000" value="0" aria-label="Progresso do vídeo">
+    <button class="fs-shrink" aria-label="Voltar à tela normal">${svgIcon('shrink')}</button>
+   </div>
+  </article>`
+ }).join('');
+ $$('.video-card').forEach(card=>{
+  const v=card.querySelector('video'),range=card.querySelector('.fs-range');
+  v.addEventListener('loadedmetadata',()=>{if(v.videoHeight>v.videoWidth)card.classList.add('is-portrait')});
+  v.addEventListener('timeupdate',()=>{if(v.duration&&range)range.value=Math.round((v.currentTime/v.duration)*1000)});
+  v.addEventListener('error',()=>console.error('Falha ao carregar vídeo',v.currentSrc||v.src,v.error));
+  card.querySelector('.tap-zone').onclick=e=>{
+   e.stopPropagation();
+   if(document.fullscreenElement===card){showCardFsControls(card);return}
+   if(v.muted)v.muted=false;
+   v.paused?v.play().catch(()=>{}):v.pause();
+   pulse(card,v.paused?'play':'pause');
+  };
+  card.querySelector('.profile-chip').onclick=e=>{e.stopPropagation();openProfile(card.dataset.user)};
+  card.querySelector('.like-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleLike()};
+  card.querySelector('.comment-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;openComments()};
+  card.querySelector('.save-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleSave()};
+  card.querySelector('.share-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;shareCurrent()};
+  card.querySelector('.fs-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;fullscreenCurrent()};
+  card.querySelector('.fs-toggle').onclick=e=>{e.stopPropagation();v.paused?v.play().catch(()=>{}):v.pause();showCardFsControls(card)};
+  card.querySelector('.fs-shrink').onclick=e=>{e.stopPropagation();exitFullscreen()};
+  range?.addEventListener('input',e=>{e.stopPropagation();if(v.duration)v.currentTime=(Number(range.value)/1000)*v.duration});
+  v.addEventListener('play',()=>syncFsButton(card));
+  v.addEventListener('pause',()=>syncFsButton(card));
+  v.addEventListener('ended',()=>{v.currentTime=0});
+ });
+ observeFeed();
+}
+function pulse(card,t){const p=card.querySelector('.controls-pulse');p.innerHTML=svgIcon(t==='play'?'play':'pause',true);p.classList.add('show');setTimeout(()=>p.classList.remove('show'),450)}
 let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});v.play().catch(()=>{});state.currentId=e.target.dataset.id}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
 function currentCard(){return document.querySelector(`.video-card[data-id="${state.currentId}"]`)||$('.video-card')}
 async function toggleLike(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.liked.has(id)){await sb.from('video_likes').delete().eq('user_id',state.user.id).eq('video_id',id);state.liked.delete(id)}else{await sb.from('video_likes').insert({user_id:state.user.id,video_id:id});state.liked.add(id)}const v=state.videos.find(x=>x.id===id);if(v)v.like_count=Math.max(0,(v.like_count||0)+(state.liked.has(id)?1:-1));updateCardActions(id)}
 async function toggleSave(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.saved.has(id)){await sb.from('saved_videos').delete().eq('user_id',state.user.id).eq('video_id',id);state.saved.delete(id)}else{await sb.from('saved_videos').insert({user_id:state.user.id,video_id:id});state.saved.add(id)}updateCardActions(id)}
-function updateCardActions(id){const card=document.querySelector(`.video-card[data-id="${id}"]`),v=state.videos.find(x=>x.id===id);if(!card||!v)return;const like=card.querySelector('.like-btn');like.querySelector('.rail-icon').textContent=state.liked.has(id)?'♥':'♡';like.querySelector('.rail-count').textContent=v.like_count||0;card.querySelector('.save-btn .rail-icon').textContent=state.saved.has(id)?'▣':'□'}
+function updateCardActions(id){
+ const card=document.querySelector(`.video-card[data-id="${id}"]`),v=state.videos.find(x=>x.id===id);if(!card||!v)return;
+ card.querySelector('.like-btn .rail-icon').innerHTML=svgIcon('heart',state.liked.has(id));
+ card.querySelector('.like-btn .rail-count').textContent=v.like_count||0;
+ card.querySelector('.save-btn .rail-icon').innerHTML=svgIcon('save',state.saved.has(id));
+}
 async function openComments(){const id=state.currentId;if(!id)return;const {data,error}=await sb.from('comments').select('id,body,created_at,profiles(username,avatar_url)').eq('video_id',id).order('created_at',{ascending:true});if(error)return toast(error.message);$('#commentsList').innerHTML=(data||[]).map(c=>`<div class="comment"><b>@${safe(c.profiles?.username||'usuario')}</b><p>${safe(c.body)}</p></div>`).join('')||'<p class="muted small">Nenhum comentário ainda.</p>';openSheet('commentsSheet')}
 async function shareCurrent(){const v=state.videos.find(x=>x.id===state.currentId);if(!v)return;if(navigator.share)await navigator.share({title:v.title||'Vídeo',url:v.video_url}).catch(()=>{});else{await navigator.clipboard.writeText(v.video_url).catch(()=>{});toast('Link copiado.')}}
-function fullscreenCurrent(){const card=currentCard();card?.requestFullscreen?.().catch(()=>{})}
-function showFullscreenControls(card){const box=$('#fullscreenControls'),v=card.querySelector('video');box.classList.remove('hidden');$('#fsPlayPause').textContent=v.paused?'REPRODUZIR':'PAUSAR';clearTimeout(state.fsTimer);state.fsTimer=setTimeout(()=>box.classList.add('hidden'),2600)}
-$('#fsPlayPause').onclick=()=>{const card=document.fullscreenElement;if(!card)return;const v=card.querySelector('video');v.paused?v.play():v.pause();showFullscreenControls(card)};$('#fsExit').onclick=()=>document.exitFullscreen?.();
-document.addEventListener('fullscreenchange',()=>{const card=document.fullscreenElement;if(card?.classList?.contains('video-card')){card.onclick=()=>showFullscreenControls(card);$('#fullscreenControls').classList.add('hidden')}else{$('#fullscreenControls').classList.add('hidden')}});
+function syncFsButton(card){const v=card?.querySelector('video'),b=card?.querySelector('.fs-toggle');if(!v||!b)return;b.innerHTML=svgIcon(v.paused?'play':'pause',true);b.setAttribute('aria-label',v.paused?'Reproduzir':'Pausar')}
+function showCardFsControls(card){if(!card)return;card.classList.add('fs-visible');syncFsButton(card);clearTimeout(state.fsTimer);state.fsTimer=setTimeout(()=>card.classList.remove('fs-visible'),3000)}
+function fullscreenCurrent(){const card=currentCard();if(!card)return;const req=card.requestFullscreen||card.webkitRequestFullscreen;if(req){Promise.resolve(req.call(card)).then(()=>{setTimeout(()=>showCardFsControls(card),80)}).catch(()=>{})}}
+function exitFullscreen(){const exit=document.exitFullscreen||document.webkitExitFullscreen;if(exit)exit.call(document)}
+document.addEventListener('fullscreenchange',()=>{const card=document.fullscreenElement;if(card?.classList?.contains('video-card')){card.classList.remove('fs-visible');clearTimeout(state.fsTimer)}else{$$('.video-card').forEach(c=>c.classList.remove('fs-visible'));clearTimeout(state.fsTimer)}});
+document.addEventListener('webkitfullscreenchange',()=>{const card=document.webkitFullscreenElement;if(card?.classList?.contains('video-card')){card.classList.remove('fs-visible');clearTimeout(state.fsTimer)}else{$$('.video-card').forEach(c=>c.classList.remove('fs-visible'));clearTimeout(state.fsTimer)}});
 async function openProfile(userId){const {data:p,error}=await sb.from('profiles').select('*').eq('id',userId).maybeSingle();if(error||!p)return toast(error?.message||'Perfil não encontrado.');state.profileTarget=userId;const [{data:vs},{count:likes}]=await Promise.all([sb.from('videos').select('id,title,video_url').eq('user_id',userId).eq('status','published').order('created_at',{ascending:false}),sb.from('profile_likes').select('*',{count:'exact',head:true}).eq('profile_id',userId)]);$('#profileHandle').textContent='@'+p.username;$('#profileDisplay').textContent=p.display_name||'Perfil de vídeos';$('#profileAvatar').innerHTML=profileMarkup(p);$('#profileLikes').textContent=likes||0;$('#profileVideos').textContent=(vs||[]).length;$('#profileGrid').innerHTML=(vs||[]).map(v=>`<div class="profile-thumb"><video muted preload="metadata" src="${safe(v.video_url)}"></video><span>${safe(v.title||'Vídeo')}</span></div>`).join('');const own=state.user?.id===userId;$('#profilePublish').style.visibility=own?'visible':'hidden';$('#likeProfileBtn').style.display=own?'none':'block';$('#editProfileBtn').style.display=own?'block':'none';if(state.user&&!own){const {data}=await sb.from('profile_likes').select('profile_id').eq('user_id',state.user.id).eq('profile_id',userId).maybeSingle();$('#likeProfileBtn').textContent=data?'♥ PERFIL CURTIDO':'♡ CURTIR PERFIL'}$('#profileView').classList.remove('hidden')}
 async function openOwnProfile(){if(!await ensureProfile())return;openProfile(state.user.id)}
 async function toggleProfileLike(){if(!await ensureProfile())return;const pid=state.profileTarget;if(!pid||pid===state.user.id)return;const {data}=await sb.from('profile_likes').select('profile_id').eq('user_id',state.user.id).eq('profile_id',pid).maybeSingle();if(data)await sb.from('profile_likes').delete().eq('user_id',state.user.id).eq('profile_id',pid);else await sb.from('profile_likes').insert({user_id:state.user.id,profile_id:pid});await openProfile(pid)}
