@@ -427,10 +427,11 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     min-height:52px!important;
     max-height:76px!important;
   }
-  /* Com o teclado aberto, o botão PUBLICAR não acompanha o teclado.
-     Ele some temporariamente e volta à posição normal quando o teclado fechar. */
   #publishSheet.keyboard-open .publish-final-actions{
-    display:none!important;
+    padding:6px 16px calc(6px + env(safe-area-inset-bottom))!important;
+  }
+  #publishSheet.keyboard-open .publish-final-actions .primary{
+    height:44px!important;
   }
 }
 
