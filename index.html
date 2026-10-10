@@ -10,12 +10,6 @@
 <body>
   <main id="app">
     <section id="feed" class="feed" aria-label="Feed de vídeos"></section>
-    <nav id="bottomNav" class="bottom-nav is-hidden" aria-label="Navegação principal">
-      <button data-view="feed" class="nav-btn is-active">INÍCIO</button>
-      <button data-view="saved" class="nav-btn">SALVOS</button>
-      <button id="publishBtn" class="nav-btn nav-plus">+</button>
-      <button data-view="profile" class="nav-btn">PERFIL</button>
-    </nav>
   </main>
 
   <div id="sheetBackdrop" class="backdrop hidden"></div>
@@ -40,27 +34,26 @@
     <form id="publishForm" class="publish-form">
       <label class="upload-box"><input id="videoFile" type="file" accept="video/*" hidden /><span>ESCOLHER VÍDEO DA GALERIA</span><small id="pickedFile">Nenhum vídeo selecionado</small></label>
       <div class="or">OU</div>
-      <input id="externalUrl" type="url" placeholder="Link direto de vídeo (opcional)" />
+      <input id="externalUrl" type="url" placeholder="Link de vídeo (opcional)" />
       <input id="videoTitle" maxlength="120" placeholder="Título curto (opcional)" />
       <button id="publishSubmit" class="primary" type="submit">PUBLICAR</button>
       <p id="publishStatus" class="muted small"></p>
     </form>
   </aside>
 
-  <aside id="authSheet" class="sheet hidden" aria-label="Conta">
-    <div class="sheet-head"><strong>CONTA</strong><button data-close="authSheet" class="icon-btn">×</button></div>
-    <form id="authForm" class="publish-form">
-      <input id="authUsername" maxlength="24" placeholder="@usuário" autocomplete="username" />
-      <input id="authEmail" type="email" placeholder="E-mail" autocomplete="email" required />
-      <input id="authPassword" type="password" minlength="6" placeholder="Senha" autocomplete="current-password" required />
-      <button id="loginBtn" class="primary" type="submit">ENTRAR</button>
-      <button id="registerBtn" class="outline-button" type="button">CRIAR CONTA</button>
-      <p id="authStatus" class="muted small"></p>
+  <aside id="profileSetupSheet" class="sheet hidden" aria-label="Criar perfil">
+    <div class="sheet-head"><strong>SEU PERFIL</strong><button data-close="profileSetupSheet" class="icon-btn">×</button></div>
+    <form id="profileSetupForm" class="publish-form">
+      <p class="muted small">Escolha apenas seu @ para começar. Não há tela de login.</p>
+      <input id="setupUsername" maxlength="24" placeholder="@usuario" required />
+      <input id="setupDisplayName" maxlength="60" placeholder="Nome (opcional)" />
+      <button class="primary" type="submit">CONTINUAR</button>
+      <p id="profileSetupStatus" class="muted small"></p>
     </form>
   </aside>
 
   <section id="profileView" class="overlay-view hidden">
-    <div class="profile-top"><button class="back-btn" data-close-view>‹</button><strong>PERFIL</strong><button id="profilePublish" class="small-plus">+</button></div>
+    <div class="profile-top"><button class="back-btn" data-close-view>‹</button><strong id="profileTopTitle">PERFIL</strong><button id="profilePublish" class="small-plus">+</button></div>
     <div class="profile-card">
       <div id="profileAvatar" class="avatar">C</div>
       <div class="profile-meta"><h1 id="profileHandle">@perfil</h1><p id="profileDisplay">Perfil de vídeos</p><div class="profile-stats"><span><b id="profileLikes">0</b> likes</span><span><b id="profileVideos">0</b> vídeos</span></div></div>
@@ -69,15 +62,10 @@
     <div id="profileGrid" class="profile-grid"></div>
   </section>
 
-  <section id="infoView" class="overlay-view hidden">
-    <div class="profile-top"><button class="back-btn" data-close-view>‹</button><strong>INFORMAÇÕES</strong><span></span></div>
-    <article class="info-content">
-      <h2>Como funciona</h2><p>Uma tela simples para descobrir, assistir e publicar vídeos. O foco principal são vídeos longos, sem impedir edits e conteúdos menores.</p>
-      <h2>Regras básicas</h2><p>Sem nudez ou conteúdo sexual explícito, exploração, conteúdo ilegal, assédio grave ou material publicado sem os direitos necessários.</p>
-      <h2>Privacidade</h2><p>Guardamos somente o necessário para conta, perfil, likes, comentários, progresso, denúncias e funcionamento do serviço.</p>
-      <h2>Moderação</h2><p>Denúncias simples, remoção de conteúdo e suspensão de contas reincidentes quando necessário.</p>
-    </article>
-  </section>
+  <div id="fullscreenControls" class="fullscreen-controls hidden">
+    <button id="fsPlayPause">PAUSAR</button>
+    <button id="fsExit">VOLTAR À TELA NORMAL</button>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js"></script>

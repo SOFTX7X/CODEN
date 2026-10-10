@@ -1,12 +1,16 @@
-CODEN VIDEO V2
+CODEN VIDEO V3 - FEED LIMPO / SEM LOGIN VISÍVEL
 
-1. O schema principal supabase-schema.sql já foi executado anteriormente.
-2. Agora rode também supabase-storage-update.sql no SQL Editor do Supabase.
-3. Depois publique estes arquivos em um host HTTPS.
-4. Crie uma conta pelo próprio site e escolha um @usuário.
-5. Para testar upload, comece com um vídeo pequeno para não consumir a cota gratuita rapidamente.
+ANTES DE TESTAR:
+1. Supabase Dashboard > Authentication > Providers > Anonymous Sign-Ins: habilite Anonymous Sign-Ins.
+2. Rode supabase-v3-update.sql uma vez no SQL Editor.
+3. O bucket videos da V2 continua sendo usado; não precisa recriar se já existe.
 
-OBSERVAÇÃO:
-- SUPABASE_URL e ANON KEY pública já estão em assets/config.js.
-- Não existe service_role ou segredo neste pacote.
-- O bucket V2 está limitado a 512 MB por arquivo para o MVP. Esse valor pode ser alterado depois.
+FLUXO:
+- O site abre direto no feed.
+- Não existe tela de login.
+- Supabase cria uma sessão anônima silenciosa para likes, comentários, saves e publicação.
+- No feed fica apenas foto + @ do perfil.
+- Toque no vídeo abre as ações.
+- Toque na foto/@ abre o perfil.
+- O + de publicar fica no próprio perfil.
+- Tela cheia esconde tudo; toque mostra controles temporários.
