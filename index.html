@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
   <title>CODEN Video</title>
   <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
   <main id="app">
     <section id="feed" class="feed" aria-label="Feed de vídeos"></section>
-
-    <nav class="bottom-nav" aria-label="Navegação principal">
+    <nav id="bottomNav" class="bottom-nav is-hidden" aria-label="Navegação principal">
       <button data-view="feed" class="nav-btn is-active">INÍCIO</button>
       <button data-view="saved" class="nav-btn">SALVOS</button>
       <button id="publishBtn" class="nav-btn nav-plus">+</button>
@@ -20,50 +20,50 @@
 
   <div id="sheetBackdrop" class="backdrop hidden"></div>
 
+  <aside id="actionsSheet" class="mini-sheet hidden" aria-label="Ações do vídeo">
+    <button id="actionLike">♡ CURTIR</button>
+    <button id="actionComment">COMENTAR</button>
+    <button id="actionSave">SALVAR</button>
+    <button id="actionShare">COMPARTILHAR</button>
+    <button id="actionFullscreen">TELA CHEIA</button>
+    <button id="actionReport" class="danger-text">DENUNCIAR</button>
+  </aside>
+
   <aside id="commentsSheet" class="sheet hidden" aria-label="Comentários">
-    <div class="sheet-head">
-      <strong>COMENTÁRIOS</strong>
-      <button data-close="commentsSheet" class="icon-btn">×</button>
-    </div>
+    <div class="sheet-head"><strong>COMENTÁRIOS</strong><button data-close="commentsSheet" class="icon-btn">×</button></div>
     <div id="commentsList" class="comments-list"></div>
-    <form id="commentForm" class="comment-form">
-      <input id="commentInput" maxlength="280" placeholder="Escreva um comentário..." />
-      <button>ENVIAR</button>
-    </form>
+    <form id="commentForm" class="comment-form"><input id="commentInput" maxlength="280" placeholder="Escreva um comentário..." /><button>ENVIAR</button></form>
   </aside>
 
   <aside id="publishSheet" class="sheet hidden" aria-label="Publicar vídeo">
-    <div class="sheet-head">
-      <strong>PUBLICAR</strong>
-      <button data-close="publishSheet" class="icon-btn">×</button>
-    </div>
+    <div class="sheet-head"><strong>PUBLICAR</strong><button data-close="publishSheet" class="icon-btn">×</button></div>
     <form id="publishForm" class="publish-form">
-      <label class="upload-box">
-        <input id="videoFile" type="file" accept="video/*" hidden />
-        <span>ESCOLHER VÍDEO DA GALERIA</span>
-        <small id="pickedFile">Nenhum vídeo selecionado</small>
-      </label>
+      <label class="upload-box"><input id="videoFile" type="file" accept="video/*" hidden /><span>ESCOLHER VÍDEO DA GALERIA</span><small id="pickedFile">Nenhum vídeo selecionado</small></label>
       <div class="or">OU</div>
-      <input id="externalUrl" type="url" placeholder="Link externo opcional" />
+      <input id="externalUrl" type="url" placeholder="Link direto de vídeo (opcional)" />
       <input id="videoTitle" maxlength="120" placeholder="Título curto (opcional)" />
-      <button class="primary" type="submit">PUBLICAR</button>
-      <p class="muted small">No MVP, o envio real será conectado ao storage/CDN depois. O Supabase ficará com contas, perfis, likes, comentários e metadados.</p>
+      <button id="publishSubmit" class="primary" type="submit">PUBLICAR</button>
+      <p id="publishStatus" class="muted small"></p>
+    </form>
+  </aside>
+
+  <aside id="authSheet" class="sheet hidden" aria-label="Conta">
+    <div class="sheet-head"><strong>CONTA</strong><button data-close="authSheet" class="icon-btn">×</button></div>
+    <form id="authForm" class="publish-form">
+      <input id="authUsername" maxlength="24" placeholder="@usuário" autocomplete="username" />
+      <input id="authEmail" type="email" placeholder="E-mail" autocomplete="email" required />
+      <input id="authPassword" type="password" minlength="6" placeholder="Senha" autocomplete="current-password" required />
+      <button id="loginBtn" class="primary" type="submit">ENTRAR</button>
+      <button id="registerBtn" class="outline-button" type="button">CRIAR CONTA</button>
+      <p id="authStatus" class="muted small"></p>
     </form>
   </aside>
 
   <section id="profileView" class="overlay-view hidden">
-    <div class="profile-top">
-      <button class="back-btn" data-close-view>‹</button>
-      <strong>PERFIL</strong>
-      <button id="profilePublish" class="small-plus">+</button>
-    </div>
+    <div class="profile-top"><button class="back-btn" data-close-view>‹</button><strong>PERFIL</strong><button id="profilePublish" class="small-plus">+</button></div>
     <div class="profile-card">
-      <div class="avatar">C</div>
-      <div class="profile-meta">
-        <h1>@codenuser</h1>
-        <p>Perfil de vídeos</p>
-        <div class="profile-stats"><span><b id="profileLikes">0</b> likes</span><span><b id="profileVideos">0</b> vídeos</span></div>
-      </div>
+      <div id="profileAvatar" class="avatar">C</div>
+      <div class="profile-meta"><h1 id="profileHandle">@perfil</h1><p id="profileDisplay">Perfil de vídeos</p><div class="profile-stats"><span><b id="profileLikes">0</b> likes</span><span><b id="profileVideos">0</b> vídeos</span></div></div>
       <button id="likeProfileBtn" class="outline">♡ CURTIR PERFIL</button>
     </div>
     <div id="profileGrid" class="profile-grid"></div>
@@ -74,13 +74,12 @@
     <article class="info-content">
       <h2>Como funciona</h2><p>Uma tela simples para descobrir, assistir e publicar vídeos. O foco principal são vídeos longos, sem impedir edits e conteúdos menores.</p>
       <h2>Regras básicas</h2><p>Sem nudez ou conteúdo sexual explícito, exploração, conteúdo ilegal, assédio grave ou material publicado sem os direitos necessários.</p>
-      <h2>Privacidade</h2><p>Guardar somente o necessário para conta, perfil, likes, comentários, progresso, denúncias e funcionamento do serviço.</p>
-      <h2>Moderação</h2><p>Denúncias simples, remoção de conteúdo, suspensão de contas reincidentes e revisão manual quando necessário.</p>
+      <h2>Privacidade</h2><p>Guardamos somente o necessário para conta, perfil, likes, comentários, progresso, denúncias e funcionamento do serviço.</p>
+      <h2>Moderação</h2><p>Denúncias simples, remoção de conteúdo e suspensão de contas reincidentes quando necessário.</p>
     </article>
   </section>
 
-  <button id="infoBtn" class="floating-info" aria-label="Informações">⋯</button>
-
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js"></script>
   <script src="assets/app.js"></script>
 </body>

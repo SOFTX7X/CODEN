@@ -1,27 +1,12 @@
-CODEN VIDEO - BASE V1
+CODEN VIDEO V2
 
-OBJETIVO
-- Feed vertical de vídeos com foco em vídeos longos.
-- Interface extremamente limpa.
-- Publicação por vídeo da Galeria ou link externo.
-- Likes no vídeo, comentários simples, salvos, compartilhamento.
-- Perfil com "curtir perfil" em vez de seguidores tradicionais.
-- Informações institucionais fora do feed.
+1. O schema principal supabase-schema.sql já foi executado anteriormente.
+2. Agora rode também supabase-storage-update.sql no SQL Editor do Supabase.
+3. Depois publique estes arquivos em um host HTTPS.
+4. Crie uma conta pelo próprio site e escolha um @usuário.
+5. Para testar upload, comece com um vídeo pequeno para não consumir a cota gratuita rapidamente.
 
-ESTADO ATUAL
-- Protótipo funcional front-end em modo DEMO.
-- Não envia arquivos para servidor ainda.
-- config.js já possui campos para SUPABASE_URL e SUPABASE_ANON_KEY.
-- supabase-schema.sql contém a estrutura inicial do banco e políticas RLS.
-
-IMPORTANTE SOBRE CHAVES
-- Use somente SUPABASE_URL e SUPABASE_ANON_KEY no front-end.
-- NUNCA coloque service_role ou segredo administrativo em JavaScript público.
-
-PRÓXIMA ETAPA
-1. Criar/ligar projeto Supabase.
-2. Configurar Auth.
-3. Aplicar supabase-schema.sql.
-4. Definir onde vídeos grandes serão armazenados/CDN.
-5. Conectar feed, perfis, likes, comentários, salvos, progresso e denúncias.
-6. Depois transformar em WebApp Android.
+OBSERVAÇÃO:
+- SUPABASE_URL e ANON KEY pública já estão em assets/config.js.
+- Não existe service_role ou segredo neste pacote.
+- O bucket V2 está limitado a 512 MB por arquivo para o MVP. Esse valor pode ser alterado depois.
