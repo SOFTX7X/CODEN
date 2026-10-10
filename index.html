@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <title>CODEN Video</title>
-  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="stylesheet" href="assets/style.css?v=4" />
 </head>
 <body>
   <main id="app">
@@ -15,11 +15,11 @@
   <div id="sheetBackdrop" class="backdrop hidden"></div>
 
   <aside id="actionsSheet" class="mini-sheet hidden" aria-label="Ações do vídeo">
-    <button id="actionLike">♡ CURTIR</button>
-    <button id="actionComment">COMENTAR</button>
-    <button id="actionSave">SALVAR</button>
-    <button id="actionShare">COMPARTILHAR</button>
-    <button id="actionFullscreen">TELA CHEIA</button>
+    <button id="actionLike" title="Curtir">♡</button>
+    <button id="actionComment" title="Comentar">COMENTAR</button>
+    <button id="actionSave" title="Salvar">SALVAR</button>
+    <button id="actionShare" title="Compartilhar">ENVIAR</button>
+    <button id="actionFullscreen" title="Tela cheia">TELA CHEIA</button>
     <button id="actionReport" class="danger-text">DENUNCIAR</button>
   </aside>
 
@@ -69,6 +69,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js"></script>
-  <script src="assets/app.js"></script>
+  <script src="assets/app.js?v=4"></script>
 </body>
 </html>
