@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
   <title>CODEN Video</title>
-  <link rel="stylesheet" href="assets/style.css?v=12" />
+  <link rel="stylesheet" href="assets/style.css?v=15" />
 </head>
 <body>
   <main id="app">
@@ -29,18 +29,61 @@
     <form id="commentForm" class="comment-form"><input id="commentInput" maxlength="280" placeholder="Escreva um comentário..." /><button>ENVIAR</button></form>
   </aside>
 
-  <aside id="publishSheet" class="sheet hidden" aria-label="Publicar vídeo">
-    <div class="sheet-head"><strong>PUBLICAR</strong><button data-close="publishSheet" class="icon-btn">×</button></div>
+  <aside id="publishSheet" class="sheet publish-flow hidden" aria-label="Publicar vídeo">
     <form id="publishForm" class="publish-form publish-instagram">
-      <div id="publishPreviewWrap" class="publish-preview hidden">
-        <video id="publishPreview" playsinline controls preload="metadata"></video>
-      </div>
-      <label class="upload-box compact-upload"><input id="videoFile" type="file" accept="video/*" hidden /><span>ESCOLHER VÍDEO DA GALERIA</span><small id="pickedFile">Nenhum vídeo selecionado</small></label>
-      <div class="or">OU</div>
-      <input id="externalUrl" type="url" placeholder="Link de vídeo (opcional)" />
-      <textarea id="videoTitle" maxlength="500" placeholder="Escreva uma legenda..."></textarea>
-      <button id="publishSubmit" class="primary" type="submit">PUBLICAR</button>
-      <p id="publishStatus" class="muted small"></p>
+      <section id="publishStepSelect" class="publish-step">
+        <header class="publish-topbar">
+          <button type="button" data-close="publishSheet" class="publish-back" aria-label="Fechar">×</button>
+          <strong>NOVO VÍDEO</strong>
+          <button id="publishNext" type="button" class="publish-next" disabled>AVANÇAR</button>
+        </header>
+
+        <div id="publishPreviewWrap" class="publish-select-preview">
+          <video id="publishPreview" playsinline muted loop preload="metadata"></video>
+          <div id="publishEmpty" class="publish-empty">
+            <span class="publish-empty-icon" aria-hidden="true">▶</span>
+            <strong>SELECIONE UM VÍDEO</strong>
+            <small>Escolha um vídeo da Galeria para visualizar antes de publicar.</small>
+          </div>
+          <label id="publishChange" class="publish-change hidden">
+            <input id="videoFile" type="file" accept="video/*" hidden />
+            TROCAR VÍDEO
+          </label>
+        </div>
+
+        <label id="publishChoose" class="publish-gallery-button">
+          <input id="videoFileFirst" type="file" accept="video/*" hidden />
+          <span>ESCOLHER VÍDEO DA GALERIA</span>
+          <small id="pickedFile">Nenhum vídeo selecionado</small>
+        </label>
+
+        <details class="publish-link-details">
+          <summary>USAR LINK DE VÍDEO</summary>
+          <input id="externalUrl" type="url" placeholder="https://..." />
+        </details>
+      </section>
+
+      <section id="publishStepCaption" class="publish-step hidden">
+        <header class="publish-topbar">
+          <button id="publishBack" type="button" class="publish-back" aria-label="Voltar">‹</button>
+          <strong>NOVA PUBLICAÇÃO</strong>
+          <span class="publish-top-spacer"></span>
+        </header>
+
+        <div class="publish-final-preview">
+          <video id="publishFinalPreview" playsinline muted loop controls preload="metadata"></video>
+        </div>
+
+        <label class="publish-caption-wrap">
+          <textarea id="videoTitle" maxlength="500" placeholder="Escreva uma legenda..."></textarea>
+          <span id="captionCount">0/500</span>
+        </label>
+
+        <div class="publish-final-actions">
+          <button id="publishSubmit" class="primary" type="submit">PUBLICAR</button>
+          <p id="publishStatus" class="muted small"></p>
+        </div>
+      </section>
     </form>
   </aside>
 
@@ -93,6 +136,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/config.js"></script>
-  <script src="assets/app.js?v=12"></script>
+  <script src="assets/app.js?v=15"></script>
 </body>
 </html>
