@@ -1,6 +1,6 @@
 const C=window.CODEN_CONFIG||{};
 const sb=window.supabase?.createClient?.(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
-const state={user:null,profile:null,videos:[],currentId:null,liked:new Set(),saved:new Set(),profileTarget:null,fsTimer:null,channel:null,audioUnlocked:false,profileCache:new Map(),fsScrollTop:0,publishFile:null,publishStep:1};
+const state={user:null,profile:null,videos:[],currentId:null,liked:new Set(),saved:new Set(),profileTarget:null,fsTimer:null,channel:null,audioUnlocked:false,profileCache:new Map(),fsScrollTop:0,fullscreenCard:null,publishFile:null,publishStep:1};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const feed=$('#feed');
 function safe(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -85,7 +85,7 @@ function renderFeed(){
   card.querySelector('.fs-toggle').onclick=e=>{e.stopPropagation();v.paused?v.play().catch(()=>{}):v.pause();showCardFsControls(card)};
   card.querySelector('.fs-shrink').onclick=e=>{e.stopPropagation();exitFullscreen()};
   range?.addEventListener('input',e=>{e.stopPropagation();if(v.duration)v.currentTime=(Number(range.value)/1000)*v.duration});
-  v.addEventListener('play',()=>syncFsButton(card));
+  v.addEventListener('play',()=>{if(state.fullscreenCard&&state.fullscreenCard!==card){v.pause();return}syncFsButton(card)});
   v.addEventListener('pause',()=>syncFsButton(card));
   v.addEventListener('ended',()=>{if(v.dataset.manualPaused!=='1'){v.currentTime=0;playVideoSmart(v)}});
  });
@@ -94,21 +94,24 @@ function renderFeed(){
 function pulse(card,t){const p=card.querySelector('.controls-pulse');p.innerHTML=svgIcon(t==='play'?'play':'pause',true);p.classList.add('show');setTimeout(()=>p.classList.remove('show'),450)}
 async function playVideoSmart(v){
  if(!v||v.dataset.manualPaused==='1')return;
+ if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v){v.pause();return}
  try{
   v.muted=false;
   await v.play();
+  if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v){v.pause();return}
   state.audioUnlocked=true;
  }catch(_){
-  try{v.muted=true;await v.play()}catch(__){}
+  if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v)return;
+  try{v.muted=true;await v.play();if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v)v.pause()}catch(__){}
  }
 }
 function unlockCurrentAudio(){
  state.audioUnlocked=true;
  const card=currentCard(),v=card?.querySelector('video');
- if(v&&v.dataset.manualPaused!=='1'){v.muted=false;v.play().catch(()=>{})}
+ if(v&&v.dataset.manualPaused!=='1'&&(!state.fullscreenCard||state.fullscreenCard===card)){v.muted=false;v.play().catch(()=>{})}
 }
 ['pointerdown','touchstart','keydown'].forEach(evt=>document.addEventListener(evt,unlockCurrentAudio,{capture:true,once:false,passive:true}));
-let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});state.currentId=e.target.dataset.id;if(v.dataset.manualPaused!=='1')playVideoSmart(v)}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
+let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(state.fullscreenCard){if(e.target!==state.fullscreenCard)v.pause();return}if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});state.currentId=e.target.dataset.id;if(v.dataset.manualPaused!=='1')playVideoSmart(v)}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
 function currentCard(){return document.querySelector(`.video-card[data-id="${state.currentId}"]`)||$('.video-card')}
 async function toggleLike(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.liked.has(id)){await sb.from('video_likes').delete().eq('user_id',state.user.id).eq('video_id',id);state.liked.delete(id)}else{await sb.from('video_likes').insert({user_id:state.user.id,video_id:id});state.liked.add(id)}const v=state.videos.find(x=>x.id===id);if(v)v.like_count=Math.max(0,(v.like_count||0)+(state.liked.has(id)?1:-1));updateCardActions(id)}
 async function toggleSave(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.saved.has(id)){await sb.from('saved_videos').delete().eq('user_id',state.user.id).eq('video_id',id);state.saved.delete(id)}else{await sb.from('saved_videos').insert({user_id:state.user.id,video_id:id});state.saved.add(id)}updateCardActions(id)}
@@ -121,21 +124,49 @@ function updateCardActions(id){
 async function openComments(){const id=state.currentId;if(!id)return;const {data,error}=await sb.from('comments').select('id,body,created_at,profiles(username,avatar_url)').eq('video_id',id).order('created_at',{ascending:true});if(error)return toast(error.message);$('#commentsList').innerHTML=(data||[]).map(c=>`<div class="comment"><b>@${safe(c.profiles?.username||'usuario')}</b><p>${safe(c.body)}</p></div>`).join('')||'<p class="muted small">Nenhum comentário ainda.</p>';openSheet('commentsSheet')}
 async function shareCurrent(){const v=state.videos.find(x=>x.id===state.currentId);if(!v)return;if(navigator.share)await navigator.share({title:v.title||'Vídeo',url:v.video_url}).catch(()=>{});else{await navigator.clipboard.writeText(v.video_url).catch(()=>{});toast('Link copiado.')}}
 function syncFsButton(card){const v=card?.querySelector('video'),b=card?.querySelector('.fs-toggle');if(!v||!b)return;b.innerHTML=svgIcon(v.paused?'play':'pause',true);b.setAttribute('aria-label',v.paused?'Reproduzir':'Pausar')}
-function showCardFsControls(card){if(!card)return;clearTimeout(state.fsTimer);card.classList.add('fs-visible');syncFsButton(card)}
-function toggleCardFsControls(card){if(!card)return;clearTimeout(state.fsTimer);card.classList.toggle('fs-visible');syncFsButton(card)}
+function hideCardFsControls(card){if(!card)return;card.classList.remove('fs-visible')}
+function showCardFsControls(card){
+ if(!card)return;
+ clearTimeout(state.fsTimer);
+ card.classList.add('fs-visible');syncFsButton(card);
+ state.fsTimer=setTimeout(()=>hideCardFsControls(card),1000);
+}
+function toggleCardFsControls(card){
+ if(!card)return;
+ if(card.classList.contains('fs-visible')){clearTimeout(state.fsTimer);hideCardFsControls(card)}
+ else showCardFsControls(card);
+}
 function lockFullscreenFeed(){state.fsScrollTop=feed.scrollTop;feed.classList.add('fullscreen-locked')}
 function unlockFullscreenFeed(){feed.classList.remove('fullscreen-locked');requestAnimationFrame(()=>{feed.scrollTop=state.fsScrollTop})}
-function fullscreenCurrent(){const card=currentCard();if(!card)return;state.fsScrollTop=feed.scrollTop;const req=card.requestFullscreen||card.webkitRequestFullscreen;if(req){Promise.resolve(req.call(card)).catch(()=>{})}}
+function fullscreenCurrent(){
+ const card=currentCard();if(!card)return;
+ state.fullscreenCard=card;
+ state.fsScrollTop=feed.scrollTop;
+ // Impede audio de outros videos mesmo antes do evento fullscreenchange.
+ $$('.video-card video').forEach(v=>{if(v!==card.querySelector('video')){v.pause();v.muted=true}});
+ const req=card.requestFullscreen||card.webkitRequestFullscreen;
+ if(req){Promise.resolve(req.call(card)).catch(()=>{state.fullscreenCard=null})}
+}
 function exitFullscreen(){const exit=document.exitFullscreen||document.webkitExitFullscreen;if(exit)exit.call(document)}
 function handleFullscreenChange(){
  const card=document.fullscreenElement||document.webkitFullscreenElement;
  clearTimeout(state.fsTimer);
  if(card?.classList?.contains('video-card')){
+  state.fullscreenCard=card;
+  state.currentId=card.dataset.id;
+  $$('.video-card video').forEach(v=>{if(v!==card.querySelector('video')){v.pause();v.muted=true}});
   lockFullscreenFeed();
-  requestAnimationFrame(()=>showCardFsControls(card));
+  requestAnimationFrame(()=>{
+   if(state.fullscreenCard===card)showCardFsControls(card);
+  });
  }else{
+  state.fullscreenCard=null;
   $$('.video-card').forEach(c=>c.classList.remove('fs-visible'));
   unlockFullscreenFeed();
+  // Retoma apenas o video atual ao sair da tela cheia.
+  const active=currentCard()?.querySelector('video');
+  $$('.video-card video').forEach(v=>{if(v!==active)v.pause()});
+  if(active&&active.dataset.manualPaused!=='1')playVideoSmart(active);
  }
 }
 document.addEventListener('fullscreenchange',handleFullscreenChange);
