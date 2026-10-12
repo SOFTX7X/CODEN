@@ -70,7 +70,7 @@ function renderFeed(){
   v.addEventListener('error',()=>console.error('Falha ao carregar vídeo',v.currentSrc||v.src,v.error));
   card.querySelector('.tap-zone').onclick=e=>{
    e.stopPropagation();
-   if(document.fullscreenElement===card){showCardFsControls(card);return}
+   if((document.fullscreenElement||document.webkitFullscreenElement)===card){toggleCardFsControls(card);return}
    if(v.paused){v.dataset.manualPaused='0';playVideoSmart(v)}else{v.dataset.manualPaused='1';v.pause()}
    pulse(card,v.paused?'play':'pause');
   };
@@ -121,7 +121,8 @@ function updateCardActions(id){
 async function openComments(){const id=state.currentId;if(!id)return;const {data,error}=await sb.from('comments').select('id,body,created_at,profiles(username,avatar_url)').eq('video_id',id).order('created_at',{ascending:true});if(error)return toast(error.message);$('#commentsList').innerHTML=(data||[]).map(c=>`<div class="comment"><b>@${safe(c.profiles?.username||'usuario')}</b><p>${safe(c.body)}</p></div>`).join('')||'<p class="muted small">Nenhum comentário ainda.</p>';openSheet('commentsSheet')}
 async function shareCurrent(){const v=state.videos.find(x=>x.id===state.currentId);if(!v)return;if(navigator.share)await navigator.share({title:v.title||'Vídeo',url:v.video_url}).catch(()=>{});else{await navigator.clipboard.writeText(v.video_url).catch(()=>{});toast('Link copiado.')}}
 function syncFsButton(card){const v=card?.querySelector('video'),b=card?.querySelector('.fs-toggle');if(!v||!b)return;b.innerHTML=svgIcon(v.paused?'play':'pause',true);b.setAttribute('aria-label',v.paused?'Reproduzir':'Pausar')}
-function showCardFsControls(card){if(!card)return;card.classList.add('fs-visible');syncFsButton(card);clearTimeout(state.fsTimer);state.fsTimer=setTimeout(()=>card.classList.remove('fs-visible'),3000)}
+function showCardFsControls(card){if(!card)return;clearTimeout(state.fsTimer);card.classList.add('fs-visible');syncFsButton(card)}
+function toggleCardFsControls(card){if(!card)return;clearTimeout(state.fsTimer);card.classList.toggle('fs-visible');syncFsButton(card)}
 function lockFullscreenFeed(){state.fsScrollTop=feed.scrollTop;feed.classList.add('fullscreen-locked')}
 function unlockFullscreenFeed(){feed.classList.remove('fullscreen-locked');requestAnimationFrame(()=>{feed.scrollTop=state.fsScrollTop})}
 function fullscreenCurrent(){const card=currentCard();if(!card)return;state.fsScrollTop=feed.scrollTop;const req=card.requestFullscreen||card.webkitRequestFullscreen;if(req){Promise.resolve(req.call(card)).catch(()=>{})}}

@@ -450,3 +450,18 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     grid-template-rows:58px minmax(300px,1fr) auto auto;
   }
 }
+
+/* CODEN VIDEO — ajuste pontual do enquadramento no feed mobile.
+   Reservar a barra inferior no enquadramento, preservando a area de snap do feed. */
+@media(max-width:899px){
+  .video-card:not(:fullscreen):not(:-webkit-full-screen)>video{
+    height:calc(100% - 58px - env(safe-area-inset-bottom))!important;
+    object-fit:contain!important;
+  }
+  .video-card:fullscreen>video,.video-card:-webkit-full-screen>video{height:100%!important}
+}
+/* Opcoes da tela cheia sob controle do toque, sem temporizador. */
+.video-card:fullscreen:not(.fs-visible) .fs-ui button,
+.video-card:fullscreen:not(.fs-visible) .fs-ui input,
+.video-card:-webkit-full-screen:not(.fs-visible) .fs-ui button,
+.video-card:-webkit-full-screen:not(.fs-visible) .fs-ui input{pointer-events:none}
