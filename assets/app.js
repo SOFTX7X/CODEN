@@ -27,7 +27,34 @@ function card(v){
  const meta=document.createElement('span');meta.className='tile-meta';meta.textContent=videoCategories(v).join(' • ');
  t.append(thumb,name,meta);t.addEventListener('click',()=>openVideo(v));return t
 }
-function render(){const cs=['Todos',...new Set(state.videos.flatMap(videoCategories))];const f=$('#filters');f.replaceChildren();cs.forEach(c=>{const b=document.createElement('button');b.textContent=c;b.className=c===state.filter?'active':'';b.onclick=()=>{state.filter=c;render()};f.append(b)});if(!cs.includes(state.filter))state.filter='Todos';const q=normalize(state.search);const list=state.videos.filter(v=>(state.filter==='Todos'||videoCategories(v).includes(state.filter))&&normalize((v.name||v.title)+' '+videoCategories(v).join(' ')).includes(q));$('#count').textContent=`${list.length} vídeo${list.length===1?'':'s'}`;$('#grid').replaceChildren(...list.map(card));$('#status').textContent=list.length?'':'Nenhum vídeo encontrado.'}
+function makeRow(label,videos){
+ const section=document.createElement('section');section.className='category-row';section.setAttribute('aria-label',label);
+ const header=document.createElement('div');header.className='row-heading';
+ const title=document.createElement('h2');title.textContent=label;
+ const actions=document.createElement('div');actions.className='row-actions';
+ const prev=document.createElement('button');prev.type='button';prev.className='row-arrow';prev.setAttribute('aria-label','Voltar em '+label);prev.textContent='‹';
+ const next=document.createElement('button');next.type='button';next.className='row-arrow';next.setAttribute('aria-label','Avançar em '+label);next.textContent='›';
+ const track=document.createElement('div');track.className='video-track';track.setAttribute('aria-label','Vídeos de '+label);track.append(...videos.map(card));
+ const move=dir=>track.scrollBy({left:dir*track.clientWidth*.85,behavior:'smooth'});
+ prev.onclick=()=>move(-1);next.onclick=()=>move(1);
+ const update=()=>{const limit=track.scrollWidth-track.clientWidth;prev.disabled=track.scrollLeft<4;next.disabled=limit<4||track.scrollLeft>=limit-4;actions.hidden=limit<4};
+ track.addEventListener('scroll',update,{passive:true});
+ if('ResizeObserver' in window){const obs=new ResizeObserver(update);obs.observe(track)}
+ actions.append(prev,next);header.append(title,actions);section.append(header,track);requestAnimationFrame(update);return section;
+}
+function render(){
+ const q=normalize(state.search);
+ const list=state.videos.filter(v=>normalize((v.name||v.title)+' '+videoCategories(v).join(' ')).includes(q));
+ $('#count').textContent=`${list.length} vídeo${list.length===1?'':'s'}`;
+ const groups=new Map();
+ for(const v of list){for(const category of videoCategories(v)){
+   if(!groups.has(category))groups.set(category,[]);groups.get(category).push(v);
+ }}
+ const preferred=['Ação','Terror','Suspense','Comédia','Aventura','Romance','Drama','Animação','Documentário','Ficção científica','Outros'];
+ const ordered=[...groups.keys()].sort((a,b)=>{const ia=preferred.indexOf(a),ib=preferred.indexOf(b);return (ia<0?999:ia)-(ib<0?999:ib)||a.localeCompare(b,'pt-BR')});
+ $('#grid').replaceChildren(...ordered.map(category=>makeRow(category,groups.get(category))));
+ $('#status').textContent=list.length?'':'Nenhum vídeo encontrado.';
+}
 function openVideo(v){$('#watchTitle').textContent=displayTitle(v.name||v.title);$('#watchCategory').textContent=videoCategories(v).join(' • ');$('#driveLink').href=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/view`;$('#player').src=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/preview`;$('#watch').showModal();document.body.style.overflow='hidden'}
 function closeVideo(){const d=$('#watch');if(d.open)d.close();$('#player').src='about:blank';document.body.style.overflow=''}
 $('#closeWatch').onclick=closeVideo;$('#watch').addEventListener('close',closeVideo);$('#watch').addEventListener('click',e=>{if(e.target===$('#watch'))closeVideo()});$('#search').addEventListener('input',e=>{state.search=e.target.value;render()});$('#searchForm').addEventListener('submit',e=>{e.preventDefault();$('#catalog').scrollIntoView()})
