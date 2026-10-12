@@ -451,17 +451,67 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
   }
 }
 
-/* CODEN VIDEO — ajuste pontual do enquadramento no feed mobile.
-   Reservar a barra inferior no enquadramento, preservando a area de snap do feed. */
+/* V26 — feed mobile preenche toda a area visivel ate a navegacao inferior.
+   O video nao deixa faixas pretas por letterboxing; fullscreen mantem o player original. */
 @media(max-width:899px){
   .video-card:not(:fullscreen):not(:-webkit-full-screen)>video{
-    height:calc(100% - 58px - env(safe-area-inset-bottom))!important;
+    width:100%!important;
+    height:calc(100% - 54px)!important;
+    object-fit:cover!important;
+    object-position:center center!important;
+  }
+  .video-card:fullscreen>video,.video-card:-webkit-full-screen>video{
+    height:100%!important;
     object-fit:contain!important;
   }
-  .video-card:fullscreen>video,.video-card:-webkit-full-screen>video{height:100%!important}
 }
-/* Opcoes da tela cheia sob controle do toque, sem temporizador. */
+/* V27 — controles aparecem por 1 segundo após entrada/toque na tela cheia. */
 .video-card:fullscreen:not(.fs-visible) .fs-ui button,
 .video-card:fullscreen:not(.fs-visible) .fs-ui input,
 .video-card:-webkit-full-screen:not(.fs-visible) .fs-ui button,
 .video-card:-webkit-full-screen:not(.fs-visible) .fs-ui input{pointer-events:none}
+
+/* V30 — tela NOVO REEL: prévia vertical compacta, centralizada e legenda abaixo.
+   Não altera seleção, envio, controles ou proporção intrínseca do arquivo. */
+@media(max-width:899px){
+  #publishSheet .publish-step-caption{
+    grid-template-rows:58px clamp(225px,39dvh,365px) minmax(110px,1fr) auto;
+  }
+  #publishSheet .publish-step-caption .publish-final-preview{
+    min-height:0;
+    width:100%;
+    padding:14px 18px;
+    background:#08090c;
+    overflow:hidden;
+  }
+  #publishSheet .publish-step-caption .publish-final-preview video{
+    display:block;
+    width:auto;
+    height:100%;
+    max-width:100%;
+    aspect-ratio:9/16;
+    object-fit:contain!important;
+    background:#000;
+    border-radius:13px;
+  }
+  #publishSheet .publish-step-caption .publish-caption-section{
+    min-height:0;
+    padding:17px 18px 12px;
+    border-top:1px solid #17191e;
+  }
+  #publishSheet .publish-step-caption .publish-caption-wrap textarea{
+    min-height:98px!important;
+    max-height:calc(100dvh - 520px)!important;
+  }
+  #publishSheet.keyboard-open .publish-step-caption{
+    grid-template-rows:54px clamp(92px,20dvh,180px) minmax(80px,1fr) auto;
+  }
+  #publishSheet.keyboard-open .publish-step-caption .publish-final-preview{
+    min-height:0;
+    padding:8px 18px;
+  }
+  #publishSheet.keyboard-open .publish-step-caption .publish-caption-wrap textarea{
+    min-height:52px!important;
+    max-height:76px!important;
+  }
+}
