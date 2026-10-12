@@ -6,8 +6,15 @@ const state={videos:[],filter:'Todos',search:''};
 const categories=[['Ação',['acao','ação','action']],['Terror',['terror','horror']],['Suspense',['suspense','thriller']],['Comédia',['comedia','comédia','humor','chaves']],['Aventura',['aventura']],['Romance',['romance']],['Drama',['drama']],['Animação',['animacao','animação','desenho']],['Documentário',['documentario','documentário']],['Ficção científica',['ficcao cientifica','ficção científica','sci-fi']]];
 const normalize=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function getCategories(name){const n=normalize(name);return categories.filter(([_,words])=>words.some(w=>new RegExp('(^|[^a-z0-9])'+normalize(w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=$|[^a-z0-9])').test(n))).map(x=>x[0]);}
-function displayTitle(name){return String(name||'Vídeo').replace(/\.(mp4|m4v|mov|webm|mkv)$/i,'').replace(/^\s*\d+[kKmM]?\s+views\s+\d+\s+reactions\s+/i,'').replace(/[_]+/g,' ').trim()}
-function videoCategories(v){return Array.isArray(v.categories)&&v.categories.length?v.categories:getCategories(v.name||v.title).length?getCategories(v.name||v.title):['Outros']}
+function displayTitle(name){return String(name||'Vídeo').replace(/\s*\[[^\]]+\](?=\.(?:mp4|m4v|mov|webm|mkv)$|$)/gi,'').replace(/\.(mp4|m4v|mov|webm|mkv)$/i,'').replace(/^\s*\d+[kKmM]?\s+views\s+\d+\s+reactions\s+/i,'').replace(/[_]+/g,' ').trim()}
+function videoCategories(v){
+ const name=String(v.name||v.title||'');
+ const explicit=[...name.matchAll(/\[([^\]]+)\]/g)].flatMap(m=>m[1].split(/[,;|]/)).map(x=>x.trim());
+ const recognized=explicit.flatMap(x=>getCategories(x)).filter((x,i,a)=>a.indexOf(x)===i);
+ if(recognized.length)return recognized;
+ if(Array.isArray(v.categories)&&v.categories.length)return v.categories;
+ const automatic=getCategories(name);return automatic.length?automatic:['Outros'];
+}
 function card(v){
  const t=document.createElement('button');t.className='tile';t.type='button';
  const thumb=document.createElement('span');thumb.className='thumb fallback';

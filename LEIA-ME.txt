@@ -1,0 +1,23 @@
+CODEN VIDEO — SINCRONIZACAO V4
+
+ARQUIVOS DO GITHUB/VERCEL:
+- index.html
+- assets/app.js
+- api/videos.js
+
+O arquivo google-drive/Code.gs NÃO vai para o site: copie-o para um projeto Google Apps Script na sua conta Google.
+
+COMO ATIVAR:
+1. Abra https://script.google.com/ e crie um projeto.
+2. Substitua o conteudo de Code.gs pelo arquivo que acompanha este ZIP.
+3. Implantar > Nova implantacao > App da Web.
+4. Executar como: Eu. Quem tem acesso: Qualquer pessoa.
+5. Autorize o acesso a sua pasta Drive e copie a URL terminada em /exec.
+6. Na Vercel do projeto, Settings > Environment Variables, crie CODEN_DRIVE_SCRIPT_URL com essa URL (sem divulga-la).
+7. Faca Redeploy da ultima versao para ativar a variavel.
+8. Abra https://codenoficial.online/api/videos e confirme que retorna videos.
+
+Somente arquivos de video compartilhados como 'Qualquer pessoa com o link' entram no catalogo.
+O site busca videos na rota /api/videos; cache de aproximadamente 2 minutos.
+Categorias: 'Filme [Acao, Suspense].mp4', e exibira titulo 'Filme'.
+Se a configuracao falhar, o site permanece em modo de demonstracao com o primeiro video.
