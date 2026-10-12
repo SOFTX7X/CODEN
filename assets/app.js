@@ -6,9 +6,9 @@ const feed=$('#feed');
 function safe(v=''){return String(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function initial(u='?'){return (u.replace('@','').trim()[0]||'?').toUpperCase()}
 function toast(msg){const n=document.createElement('div');n.className='toast';n.textContent=msg;document.body.appendChild(n);setTimeout(()=>n.remove(),2200)}
-function openSheet(id){$('#sheetBackdrop').classList.remove('hidden');$('#'+id).classList.remove('hidden')}
-function closeSheet(id){$('#'+id).classList.add('hidden');if(!$$('.sheet:not(.hidden),.mini-sheet:not(.hidden)').length){$('#sheetBackdrop').classList.add('hidden');if($('#profileView').classList.contains('hidden'))resumeFeedAfterOverlay()}}
-function closeAllSheets(){$$('.sheet,.mini-sheet').forEach(s=>s.classList.add('hidden'));$('#sheetBackdrop').classList.add('hidden')}
+function openSheet(id){pauseFeedForOverlay();$('#sheetBackdrop').classList.remove('hidden');$('#'+id).classList.remove('hidden')}
+function closeSheet(id){$('#'+id).classList.add('hidden');if(id==='publishSheet'){$('#publishPreview')?.pause();$('#publishFinalPreview')?.pause()}if(!$$('.sheet:not(.hidden),.mini-sheet:not(.hidden)').length){$('#sheetBackdrop').classList.add('hidden');if($('#profileView').classList.contains('hidden'))resumeFeedAfterOverlay()}}
+function closeAllSheets(){$$('.sheet,.mini-sheet').forEach(s=>s.classList.add('hidden'));$('#sheetBackdrop').classList.add('hidden');$('#publishPreview')?.pause();$('#publishFinalPreview')?.pause();resumeFeedAfterOverlay()}
 async function ensureAnonymousSession(){if(!sb)return false;if(state.user)return true;const {data:s}=await sb.auth.getSession();if(s.session?.user){state.user=s.session.user;return true}const {data,error}=await sb.auth.signInAnonymously();if(error){toast('Ative Anonymous Sign-Ins no Supabase.');return false}state.user=data.user||data.session?.user||null;return !!state.user}
 async function loadOwnProfile(){if(!state.user)return;const {data}=await sb.from('profiles').select('*').eq('id',state.user.id).maybeSingle();state.profile=data||null;refreshNavAvatar()}
 async function ensureProfile(){if(!await ensureAnonymousSession())return false;await loadOwnProfile();if(state.profile)return true;openSheet('profileSetupSheet');return false}
@@ -93,25 +93,25 @@ function renderFeed(){
 }
 function pulse(card,t){const p=card.querySelector('.controls-pulse');p.innerHTML=svgIcon(t==='play'?'play':'pause',true);p.classList.add('show');setTimeout(()=>p.classList.remove('show'),450)}
 async function playVideoSmart(v){
- if(!v||v.dataset.manualPaused==='1')return;
+ if(!v||v.dataset.manualPaused==='1'||!isFeedVisible())return;
  if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v){v.pause();return}
  try{
   v.muted=false;
   await v.play();
-  if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v){v.pause();return}
+  if(!isFeedVisible()||(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v)){v.pause();return}
   state.audioUnlocked=true;
  }catch(_){
-  if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v)return;
-  try{v.muted=true;await v.play();if(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v)v.pause()}catch(__){}
+  if(!isFeedVisible()||(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v))return;
+  try{v.muted=true;await v.play();if(!isFeedVisible()||(state.fullscreenCard&&state.fullscreenCard.querySelector('video')!==v))v.pause()}catch(__){}
  }
 }
 function unlockCurrentAudio(){
  state.audioUnlocked=true;
  const card=currentCard(),v=card?.querySelector('video');
- if(v&&v.dataset.manualPaused!=='1'&&(!state.fullscreenCard||state.fullscreenCard===card)){v.muted=false;v.play().catch(()=>{})}
+ if(isFeedVisible()&&v&&v.dataset.manualPaused!=='1'&&(!state.fullscreenCard||state.fullscreenCard===card)){v.muted=false;v.play().catch(()=>{})}
 }
 ['pointerdown','touchstart','keydown'].forEach(evt=>document.addEventListener(evt,unlockCurrentAudio,{capture:true,once:false,passive:true}));
-let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(state.fullscreenCard){if(e.target!==state.fullscreenCard)v.pause();return}if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});state.currentId=e.target.dataset.id;if(v.dataset.manualPaused!=='1')playVideoSmart(v)}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
+let io;function observeFeed(){io?.disconnect();io=new IntersectionObserver(entries=>entries.forEach(e=>{const v=e.target.querySelector('video');if(!isFeedVisible()){v.pause();return}if(state.fullscreenCard){if(e.target!==state.fullscreenCard)v.pause();return}if(e.isIntersecting&&e.intersectionRatio>.72){$$('.video-card video').forEach(x=>{if(x!==v)x.pause()});state.currentId=e.target.dataset.id;if(v.dataset.manualPaused!=='1')playVideoSmart(v)}else v.pause()}),{threshold:[.72]});$$('.video-card').forEach(c=>io.observe(c))}
 function currentCard(){return document.querySelector(`.video-card[data-id="${state.currentId}"]`)||$('.video-card')}
 async function toggleLike(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.liked.has(id)){await sb.from('video_likes').delete().eq('user_id',state.user.id).eq('video_id',id);state.liked.delete(id)}else{await sb.from('video_likes').insert({user_id:state.user.id,video_id:id});state.liked.add(id)}const v=state.videos.find(x=>x.id===id);if(v)v.like_count=Math.max(0,(v.like_count||0)+(state.liked.has(id)?1:-1));updateCardActions(id)}
 async function toggleSave(){if(!await ensureProfile())return;const id=state.currentId;if(!id)return;if(state.saved.has(id)){await sb.from('saved_videos').delete().eq('user_id',state.user.id).eq('video_id',id);state.saved.delete(id)}else{await sb.from('saved_videos').insert({user_id:state.user.id,video_id:id});state.saved.add(id)}updateCardActions(id)}
@@ -166,15 +166,17 @@ function handleFullscreenChange(){
   // Retoma apenas o video atual ao sair da tela cheia.
   const active=currentCard()?.querySelector('video');
   $$('.video-card video').forEach(v=>{if(v!==active)v.pause()});
-  if(active&&active.dataset.manualPaused!=='1')playVideoSmart(active);
+  if(isFeedVisible()&&active&&active.dataset.manualPaused!=='1')playVideoSmart(active);
  }
 }
 document.addEventListener('fullscreenchange',handleFullscreenChange);
 document.addEventListener('webkitfullscreenchange',handleFullscreenChange);
+function isFeedVisible(){return !document.hidden&&$('#profileView')?.classList.contains('hidden')&&!$$('.sheet:not(.hidden),.mini-sheet:not(.hidden)').length}
 function pauseFeedForOverlay(){
  $$('.video-card video').forEach(v=>{v.pause();v.muted=true});
 }
 function resumeFeedAfterOverlay(){
+ if(!isFeedVisible())return;
  const card=currentCard()||[...$$('.video-card')].find(c=>{const r=c.getBoundingClientRect();return r.top<innerHeight*.45&&r.bottom>innerHeight*.55});
  const v=card?.querySelector('video');
  if(v&&v.dataset.manualPaused!=='1')playVideoSmart(v);
@@ -226,7 +228,7 @@ $('#videoTitle').oninput=e=>{$('#captionCount').textContent=`${e.target.value.le
 $('#avatarFile').onchange=e=>{const f=e.target.files?.[0];$('#pickedAvatar').textContent=f?.name||'Nenhuma foto selecionada';if(avatarPreviewUrl)URL.revokeObjectURL(avatarPreviewUrl);if(f){avatarPreviewUrl=URL.createObjectURL(f);$('#avatarPreview').innerHTML=`<img src="${avatarPreviewUrl}" alt="Prévia da foto">`}};
 $('#profileSetupForm').onsubmit=createProfile;$('#profileEditForm').onsubmit=editProfile;$('#searchInput').oninput=e=>searchLocal(e.target.value);
 $$('[data-close]').forEach(b=>b.onclick=()=>closeSheet(b.dataset.close));$('#sheetBackdrop').onclick=closeAllSheets;$$('[data-close-view]').forEach(b=>b.onclick=()=>{b.closest('.overlay-view').classList.add('hidden');resumeFeedAfterOverlay()});
-$$('#bottomNav button').forEach(b=>b.onclick=async()=>{const a=b.dataset.nav;if(a==='home'){$('#profileView').classList.add('hidden');feed.scrollTo({top:0,behavior:'auto'});resumeFeedAfterOverlay()}if(a==='search'){openSheet('searchSheet');setTimeout(()=>$('#searchInput').focus(),100)}if(a==='publish'){if(await ensureProfile()){pauseFeedForOverlay();resetPublishFlow();openSheet('publishSheet')}}if(a==='profile')openOwnProfile()});
+$$('#bottomNav button').forEach(b=>b.onclick=async()=>{const a=b.dataset.nav;if(a!=='home')pauseFeedForOverlay();if(a==='home'){$('#profileView').classList.add('hidden');feed.scrollTo({top:0,behavior:'auto'});resumeFeedAfterOverlay()}if(a==='search'){openSheet('searchSheet');setTimeout(()=>$('#searchInput').focus(),100)}if(a==='publish'){if(await ensureProfile()){pauseFeedForOverlay();resetPublishFlow();openSheet('publishSheet')}}if(a==='profile')openOwnProfile()});
 sb?.auth.onAuthStateChange(async(_event,session)=>{state.user=session?.user||null;state.profile=null;if(state.user)await loadOwnProfile()});
 (async()=>{await loadSession();await ensureAnonymousSession();await loadOwnProfile();await loadFeed({keepPosition:false});setupRealtime()})();
 
@@ -243,3 +245,6 @@ syncPublishViewport();
 window.visualViewport?.addEventListener('resize',syncPublishViewport);
 window.visualViewport?.addEventListener('scroll',syncPublishViewport);
 window.addEventListener('resize',syncPublishViewport);
+
+// Suspende o áudio ao deixar a aba e restaura só quando o feed estiver visível.
+document.addEventListener('visibilitychange',()=>{if(document.hidden)pauseFeedForOverlay();else resumeFeedAfterOverlay()});
