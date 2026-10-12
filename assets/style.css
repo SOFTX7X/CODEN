@@ -515,3 +515,26 @@ button:focus-visible,a:focus-visible,[role="button"]:focus-visible{outline:2px s
     max-height:76px!important;
   }
 }
+
+/* V31 — miniatura do Novo Reel: enquadramento vertical como capa, sem tarjas
+   causadas pelo formato original da mídia. Somente a prévia visual. */
+@media(max-width:899px){
+  #publishSheet .publish-step-caption .publish-final-preview{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:14px 18px;
+  }
+  #publishSheet .publish-step-caption .publish-final-preview video{
+    display:block;
+    flex:0 0 auto;
+    width:auto!important;
+    height:100%!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    aspect-ratio:9/16;
+    object-fit:cover!important;
+    object-position:center center!important;
+    background:#000;
+  }
+}
