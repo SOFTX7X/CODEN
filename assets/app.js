@@ -82,7 +82,12 @@ function renderFeed(){
   card.querySelector('.save-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;toggleSave()};
   card.querySelector('.share-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;shareCurrent()};
   card.querySelector('.fs-btn').onclick=e=>{e.stopPropagation();state.currentId=card.dataset.id;fullscreenCurrent()};
-  card.querySelector('.fs-toggle').onclick=e=>{e.stopPropagation();v.paused?v.play().catch(()=>{}):v.pause();showCardFsControls(card)};
+  card.querySelector('.fs-toggle').onclick=e=>{
+   e.preventDefault();e.stopPropagation();
+   if(v.paused){v.dataset.manualPaused='0';playVideoSmart(v)}
+   else{v.dataset.manualPaused='1';v.pause()}
+   showCardFsControls(card);
+  };
   card.querySelector('.fs-shrink').onclick=e=>{e.stopPropagation();exitFullscreen()};
   range?.addEventListener('input',e=>{e.stopPropagation();if(v.duration)v.currentTime=(Number(range.value)/1000)*v.duration});
   v.addEventListener('play',()=>{if(state.fullscreenCard&&state.fullscreenCard!==card){v.pause();return}syncFsButton(card)});
@@ -106,6 +111,8 @@ async function playVideoSmart(v){
  }
 }
 function unlockCurrentAudio(){
+ // Em tela cheia, toques revelam controles; somente o botao central comanda o video.
+ if(state.fullscreenCard||document.fullscreenElement||document.webkitFullscreenElement)return;
  state.audioUnlocked=true;
  const card=currentCard(),v=card?.querySelector('video');
  if(isFeedVisible()&&v&&v.dataset.manualPaused!=='1'&&(!state.fullscreenCard||state.fullscreenCard===card)){v.muted=false;v.play().catch(()=>{})}
