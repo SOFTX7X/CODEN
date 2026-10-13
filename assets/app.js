@@ -85,20 +85,20 @@ function render(){
  $('#grid').replaceChildren(...ordered.map(category=>makeRow(category,groups.get(category))));
  $('#status').textContent=list.length?'':'Nenhum vídeo encontrado.';
 }
-const mobileWatch=()=>window.matchMedia('(max-width: 560px)').matches;
+// Android: abrir diretamente o vídeo no Google Drive, sem modal ou iframe.
+// Navegação na mesma aba para evitar bloqueios de pop-up; Voltar retorna ao catálogo.
 function openVideo(v){
- const watch=$('#watch');
+ const driveUrl=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/view`;
+ if(/Android/i.test(navigator.userAgent)){
+  window.location.assign(driveUrl);
+  return;
+ }
  $('#watchTitle').textContent=displayTitle(v.name||v.title);
  $('#watchCategory').textContent=videoCategories(v).join(' • ');
- $('#driveLink').href=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/view`;
+ $('#driveLink').href=driveUrl;
  $('#player').src=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/preview`;
- watch.classList.toggle('mobile-full-watch',mobileWatch());
- watch.showModal();document.body.style.overflow='hidden';
- // A solicitação é feita diretamente no gesto do usuário; se o navegador
- // não permitir fullscreen, o dialog já ocupa toda a viewport pelo CSS.
- if(mobileWatch()&&typeof watch.requestFullscreen==='function'){
-   try{const pending=watch.requestFullscreen({navigationUI:'hide'});if(pending&&pending.catch)pending.catch(()=>{});}catch(_e){}
- }
+ $('#watch').showModal();
+ document.body.style.overflow='hidden';
 }
 function closeVideo(){
  const d=$('#watch');
@@ -107,6 +107,5 @@ function closeVideo(){
  $('#player').src='about:blank';document.body.style.overflow='';
  d.classList.remove('mobile-full-watch');
 }
-document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&$('#watch').open&&$('#watch').classList.contains('mobile-full-watch'))closeVideo()});
 $('#closeWatch').onclick=closeVideo;$('#watch').addEventListener('close',closeVideo);$('#watch').addEventListener('click',e=>{if(e.target===$('#watch'))closeVideo()});$('#search').addEventListener('input',e=>{state.search=e.target.value;render()});$('#searchForm').addEventListener('submit',e=>{e.preventDefault();$('#catalog').scrollIntoView()})
 async function init(){try{const r=await fetch(API_URL,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const x=await r.json();if(!Array.isArray(x.videos))throw Error('Resposta inválida');state.videos=attachCovers(x.videos,Array.isArray(x.images)?x.images:[]);$('#status').textContent=''}catch(e){state.videos=FALLBACK;$('#status').textContent='Modo de demonstração: a sincronização automática ainda precisa ser ativada.'}render()}init();
