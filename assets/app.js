@@ -85,7 +85,28 @@ function render(){
  $('#grid').replaceChildren(...ordered.map(category=>makeRow(category,groups.get(category))));
  $('#status').textContent=list.length?'':'Nenhum vídeo encontrado.';
 }
-function openVideo(v){$('#watchTitle').textContent=displayTitle(v.name||v.title);$('#watchCategory').textContent=videoCategories(v).join(' • ');$('#driveLink').href=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/view`;$('#player').src=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/preview`;$('#watch').showModal();document.body.style.overflow='hidden'}
-function closeVideo(){const d=$('#watch');if(d.open)d.close();$('#player').src='about:blank';document.body.style.overflow=''}
+const mobileWatch=()=>window.matchMedia('(max-width: 560px)').matches;
+function openVideo(v){
+ const watch=$('#watch');
+ $('#watchTitle').textContent=displayTitle(v.name||v.title);
+ $('#watchCategory').textContent=videoCategories(v).join(' • ');
+ $('#driveLink').href=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/view`;
+ $('#player').src=`https://drive.google.com/file/d/${encodeURIComponent(v.id)}/preview`;
+ watch.classList.toggle('mobile-full-watch',mobileWatch());
+ watch.showModal();document.body.style.overflow='hidden';
+ // A solicitação é feita diretamente no gesto do usuário; se o navegador
+ // não permitir fullscreen, o dialog já ocupa toda a viewport pelo CSS.
+ if(mobileWatch()&&typeof watch.requestFullscreen==='function'){
+   try{const pending=watch.requestFullscreen({navigationUI:'hide'});if(pending&&pending.catch)pending.catch(()=>{});}catch(_e){}
+ }
+}
+function closeVideo(){
+ const d=$('#watch');
+ if(document.fullscreenElement===d){try{const p=document.exitFullscreen();if(p&&p.catch)p.catch(()=>{});}catch(_e){}}
+ if(d.open)d.close();
+ $('#player').src='about:blank';document.body.style.overflow='';
+ d.classList.remove('mobile-full-watch');
+}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&$('#watch').open&&$('#watch').classList.contains('mobile-full-watch'))closeVideo()});
 $('#closeWatch').onclick=closeVideo;$('#watch').addEventListener('close',closeVideo);$('#watch').addEventListener('click',e=>{if(e.target===$('#watch'))closeVideo()});$('#search').addEventListener('input',e=>{state.search=e.target.value;render()});$('#searchForm').addEventListener('submit',e=>{e.preventDefault();$('#catalog').scrollIntoView()})
 async function init(){try{const r=await fetch(API_URL,{cache:'no-store'});if(!r.ok)throw Error(`HTTP ${r.status}`);const x=await r.json();if(!Array.isArray(x.videos))throw Error('Resposta inválida');state.videos=attachCovers(x.videos,Array.isArray(x.images)?x.images:[]);$('#status').textContent=''}catch(e){state.videos=FALLBACK;$('#status').textContent='Modo de demonstração: a sincronização automática ainda precisa ser ativada.'}render()}init();
