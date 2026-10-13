@@ -36,11 +36,23 @@ function attachCovers(videos, images){
 function card(v){
  const t=document.createElement('button');t.className='tile';t.type='button';
  const thumb=document.createElement('span');thumb.className='thumb fallback';
- const img=document.createElement('img');img.loading='lazy';img.alt='';img.referrerPolicy='no-referrer';
- const sources=[v.coverId&&`https://drive.google.com/thumbnail?id=${encodeURIComponent(v.coverId)}&sz=w960`,v.thumbnailLink,`https://drive.google.com/thumbnail?id=${encodeURIComponent(v.id)}&sz=w960`,`https://lh3.googleusercontent.com/d/${encodeURIComponent(v.id)}=w960`].filter(Boolean);
- let idx=0;img.onload=()=>{thumb.classList.remove('fallback');if(!img.isConnected)thumb.append(img)};
+ const img=document.createElement('img');img.loading='eager';img.alt='';img.referrerPolicy='no-referrer';
+ const sources=(v.coverId ? [
+   `/api/cover?id=${encodeURIComponent(v.coverId)}`,
+   `https://lh3.googleusercontent.com/d/${encodeURIComponent(v.coverId)}=w960`,
+   `https://drive.google.com/thumbnail?id=${encodeURIComponent(v.coverId)}&sz=w960`,
+   `https://drive.google.com/uc?export=view&id=${encodeURIComponent(v.coverId)}`
+ ] : []).concat([
+   v.thumbnailLink,
+   `https://drive.google.com/thumbnail?id=${encodeURIComponent(v.id)}&sz=w960`,
+   `https://lh3.googleusercontent.com/d/${encodeURIComponent(v.id)}=w960`
+ ]).filter(Boolean);
+ let idx=0;
+ // Keep the image in the document so mobile browsers can actually start its request.
+ thumb.append(img);
+ img.onload=()=>{thumb.classList.remove('fallback')};
  img.onerror=()=>{idx++;if(idx<sources.length)img.src=sources[idx]};
- img.src=sources[0];
+ if(sources.length)img.src=sources[0];
  const name=document.createElement('span');name.className='tile-title';name.textContent=displayTitle(v.name||v.title);
  const meta=document.createElement('span');meta.className='tile-meta';meta.textContent=videoCategories(v).join(' • ');
  t.append(thumb,name,meta);t.addEventListener('click',()=>openVideo(v));return t
