@@ -19,3 +19,12 @@
 
 /* V1.5 — capas do acervo e paginação de catálogo */
 .cover{position:relative;overflow:hidden}.cover .source-cover{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}.cover .source-cover:not([src]){display:none}.catalog-more{text-align:center;padding:35px 12px}.catalog-more button{min-width:190px}
+
+/* V1.6: menu contextual fixo sobre o texto selecionado */
+.selection-tools{position:fixed!important;z-index:1000;display:flex;gap:3px;padding:5px;background:#20382b;color:white;border-radius:10px;box-shadow:0 12px 35px #0005;max-width:calc(100vw - 16px);margin:0!important}
+.selection-tools button{border:0;background:transparent;color:white;border-radius:6px;padding:9px 12px;font:600 12px 'DM Sans',sans-serif;white-space:nowrap}
+.selection-tools button:hover{background:#ffffff25}
+.reader-highlight{background:#e3d27a;color:#263322;border-radius:2px;padding:1px 0}
+.reading-start{outline:2px solid #b7bb6c;outline-offset:8px;border-radius:4px}
+.reader-text{white-space:normal;overflow-wrap:break-word}
+.reader-text p{white-space:pre-wrap}
