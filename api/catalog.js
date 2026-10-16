@@ -9,5 +9,5 @@ export default async function handler(req,res){
     const results=(d.results||[]).filter(b=>b.copyright===false && b.media_type==='Text' && b.authors?.some(a=>a.death_year!==null && a.death_year<=1955) && !(b.translators||[]).length).map(b=>({id:b.id,title:b.title,authors:b.authors,cover:b.formats?.['image/jpeg']||null}));
     res.setHeader('Cache-Control','public, s-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({results,total:d.count||0,next:!!d.next,page});
-  }catch{return res.status(502).json({error:'Falha temporária ao consultar o catálogo.'});}
+  }catch(error){return res.status(502).json({error:'Fonte do catálogo indisponível: '+String(error?.message||'erro de conexão')});}
 }

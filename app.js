@@ -9,50 +9,57 @@ const BOOKS=[
 {id:42942,title:'O Primo Basílio',author:'Eça de Queirós',genre:'Romance',year:1878,color:'#8e5a50',ink:'#f8e9ce',symbol:'❦',desc:'Um romance sobre desejo, aparência e consequências na Lisboa do século XIX.'}
 ];
 // Catálogo remoto em português, carregado sob demanda e deduplicado.
-let catalogPage=1, catalogLoading=false, catalogMore=true, catalogTotal=null, catalogError='', catalogRevision=0, catalogLoadAll=false;
+let catalogPage=1, catalogLoading=false, catalogMore=true, catalogTotal=null, catalogError='', catalogRevision=0, catalogLoadAll=false, catalogStatus='';
 const bookIndex=new Map(BOOKS.map(b=>[b.id,b]));
 try{const previous=JSON.parse(sessionStorage.getItem('aurora_catalogCache_v12')||'[]');for(const b of previous){if(b?.id&&!bookIndex.has(b.id)){BOOKS.push(b);bookIndex.set(b.id,b)}}}catch{}
-async function loadCatalogBatch(){
- if(catalogLoading||!catalogMore||state.view!=='livros')return;
+async function fetchCatalogPage(){
+ const q=state.query.trim();
+ const resp=await fetch(`/api/catalog?page=${catalogPage}&search=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}});
+ const data=await resp.json().catch(()=>({}));
+ if(!resp.ok)throw Error(data.error||'HTTP '+resp.status);
+ if(!Array.isArray(data.results))throw Error('Formato de resposta inesperado.');
+ const found=registerBooks(data.results);
+ catalogTotal=data.total;
+ catalogMore=!!data.next;
+ catalogPage++;
+ return found;
+}
+async function loadCatalogBatch(all=false){
+ // O clique nunca deve ser ignorado enquanto a consulta inicial estiver em andamento.
+ if(catalogLoading){if(all)catalogLoadAll=true;return;}
+ if(!catalogMore||state.view!=='livros')return;
  const revision=catalogRevision;
  catalogLoading=true;catalogError='';
- const button=document.querySelector('#loadMoreBooks');if(button){button.disabled=true;button.textContent='Carregando livros…'}
- let found=0, pagesChecked=0;
+ if(all)catalogLoadAll=true;
+ let checked=0,found=0;
  try{
-  // Várias páginas da fonte podem conter edições repetidas ou não elegíveis.
-  // Continua percorrendo até encontrar uma quantidade útil de novos títulos.
-  while(catalogMore&&pagesChecked<12&&found<48&&revision===catalogRevision&&state.view==='livros'){
-   const q=state.query.trim();
-   const resp=await fetch(`/api/catalog?page=${catalogPage}&search=${encodeURIComponent(q)}`,{headers:{Accept:'application/json'}});
-   if(!resp.ok)throw Error('Falha na consulta do catálogo ('+resp.status+').');
-   const data=await resp.json();
-   if(!Array.isArray(data.results))throw Error('Resposta inválida do catálogo.');
-   if(revision!==catalogRevision)return;
-   found+=registerBooks(data.results);
-   catalogTotal=data.total;
-   catalogMore=!!data.next;
-   catalogPage++;
-   pagesChecked++;
-  }
-  if(!found&&catalogMore)catalogError='Nenhum título novo neste trecho do catálogo. Você pode continuar buscando.';
- }catch(error){catalogError='Não foi possível consultar novos livros agora. Tente novamente.';}
- finally{
-  if(revision===catalogRevision){catalogLoading=false;if(state.view==='livros')render()}
+  do{
+   // Carrega em lotes; atualiza a tela inclusive quando a fonte demora.
+   while(catalogMore&&checked<10&&found<40&&revision===catalogRevision&&state.view==='livros'){
+    found+=await fetchCatalogPage();checked++;
+    catalogStatus=`Consultando o acervo: ${checked} páginas verificadas, ${found} livros novos neste carregamento.`;
+    if(checked%3===0&&state.view==='livros')render();
+   }
+   if(catalogLoadAll&&catalogMore&&revision===catalogRevision&&state.view==='livros'&&checked<150){
+    if(state.view==='livros')render();
+    await new Promise(resolve=>setTimeout(resolve,0));
+   }else break;
+  }while(catalogLoadAll&&catalogMore&&checked<150&&revision===catalogRevision&&state.view==='livros');
+  if(checked>=150&&catalogMore)catalogStatus='Carregamento parcial concluído. Clique novamente para continuar.';
+  else if(!found&&!catalogMore)catalogStatus='Fim do catálogo disponível nesta fonte.';
+  else if(found)catalogStatus=`${found} novos livros adicionados. ${catalogMore?'Você pode continuar carregando.':'Fim do acervo disponível.'}`;
+  else catalogStatus='Nenhum novo título elegível encontrado neste trecho do acervo.';
+ }catch(error){
+  catalogError='Falha ao buscar livros: '+String(error.message||error)+'.';
+  catalogStatus='';
+ }finally{
+  if(revision===catalogRevision){catalogLoading=false;catalogLoadAll=false;if(state.view==='livros')render()}
  }
 }
-async function loadAllCatalog(){
- if(catalogLoadAll||catalogLoading||!catalogMore)return;
+function loadAllCatalog(){
  catalogLoadAll=true;
- try{
-  let batches=0;
-  while(catalogMore&&state.view==='livros'&&batches<100){
-   const before=catalogPage;
-   await loadCatalogBatch();
-   batches++;
-   if(catalogPage===before||catalogError&&catalogError.startsWith('Não foi possível'))break;
-  }
-  if(batches===100&&catalogMore)catalogError='Limite de carregamento alcançado. Clique novamente para continuar.';
- }finally{catalogLoadAll=false;if(state.view==='livros')render()}
+ if(!catalogLoading)loadCatalogBatch(true);
+ else{catalogStatus='Aguardando a consulta atual para continuar a carregar todos os livros…';if(state.view==='livros')render()}
 }
 function makeRemoteBook(x){
  const author=x.authors?.[0]?.name||'Autor não informado';
@@ -64,7 +71,7 @@ function registerBooks(items){let added=0;for(const x of items){if(!bookIndex.ha
  try{sessionStorage.setItem('aurora_catalogCache_v12',JSON.stringify(BOOKS.slice(8,400)))}catch{}
  return added;
 }
-function resetCatalog(){catalogRevision++;catalogPage=1;catalogMore=true;catalogTotal=null;catalogError='';
+function resetCatalog(){catalogRevision++;catalogPage=1;catalogMore=true;catalogTotal=null;catalogError='';catalogStatus='';catalogLoadAll=false;
  for(let i=BOOKS.length-1;i>=8;i--)BOOKS.splice(i,1);
  bookIndex.clear();BOOKS.forEach(b=>bookIndex.set(b.id,b));
  catalogLoading=false;
@@ -80,7 +87,7 @@ function bookCover(b){return `<div class="cover" style="background:${b.color};co
 function bookCard(b){return `<article class="book-card"><a href="#detalhe/${b.id}" data-book="${b.id}" aria-label="Ver ${escapeHTML(b.title)}">${bookCover(b)}</a><div class="book-info"><div><h3>${escapeHTML(b.title)}</h3><p>${escapeHTML(b.author)}</p></div><button class="heart ${favorites.includes(b.id)?'liked':''}" data-fav="${b.id}" aria-label="Favoritar ${escapeHTML(b.title)}">${favorites.includes(b.id)?'♥':'♡'}</button></div></article>`}
 function section(title,books,subtitle='',link='livros'){return `<section class="section"><div class="section-heading"><div><div class="eyebrow">LIVROS EM DESTAQUE</div><h2>${title}</h2>${subtitle?`<p>${subtitle}</p>`:''}</div><button class="textlink" data-view="${link}">Ver todos →</button></div><div class="book-grid">${books.map(bookCard).join('')}</div></section>`}
 function home(){const curr=Object.entries(progress).sort((a,b)=>b[1].at-a[1].at)[0];return `<section class="hero"><div><div class="eyebrow">BIBLIOTECA DIGITAL GRATUITA</div><h1>Boas histórias,<br><em>sempre por perto.</em></h1><p>Encontre obras clássicas em português e leia diretamente aqui. Sem anúncios, cobranças ou cadastro obrigatório.</p><button class="primary" data-view="livros">Conhecer os livros <span>→</span></button></div><div class="hero-art"><div class="art-orb"></div><div class="art-stars">✧</div><div class="art-book"><i>✧ AURORA ✧</i><b>Seu próximo livro</b><small>LEITURA GRATUITA</small></div></div></section>${curr?`<section class="section"><div class="section-heading"><div><div class="eyebrow">LEITURA EM ANDAMENTO</div><h2>Continue sua leitura</h2></div></div><button class="secondary" data-reader="${curr[0]}">↗ Continuar ${escapeHTML(BOOKS.find(b=>b.id==curr[0])?.title||'leitura')}</button></section>`:''}${section('Destaques da biblioteca',BOOKS.slice(0,5),'Uma seleção de obras para começar a explorar.') }<div class="feature-row"><div class="feature-card green"><div><div class="eyebrow">LEITURA BÍBLICA</div><h3>Leia a Bíblia</h3><p>Escolha um livro e capítulo para iniciar a leitura.</p><button class="textlink" data-view="biblia">Acessar a Bíblia →</button></div><div class="feature-icon">✝</div></div><div class="feature-card"><div><div class="eyebrow">SUA BIBLIOTECA</div><h3>Seus livros salvos</h3><p>Acesse os favoritos e retome suas leituras neste dispositivo.</p><button class="textlink" data-view="favoritos">Ver favoritos →</button></div><div class="feature-icon">❦</div></div></div>${section('Explore outros títulos',BOOKS.slice(3,8),'Conheça mais obras do nosso acervo inicial.')}`}
-function catalog(mode){let arr=mode==='favoritos'?BOOKS.filter(b=>favorites.includes(b.id)):mode==='continuar'?BOOKS.filter(b=>progress[b.id]):BOOKS;let q=state.query.trim().toLocaleLowerCase('pt-BR');if(q)arr=arr.filter(b=>(b.title+' '+b.author+' '+b.genre).toLocaleLowerCase('pt-BR').includes(q));if(state.genre!=='Todos')arr=arr.filter(b=>b.genre===state.genre);let title=mode==='favoritos'?'Meus favoritos':mode==='continuar'?'Continuar lendo':'Biblioteca';return `<div class="intro"><div class="eyebrow">${mode==='livros'?'CATÁLOGO DE LIVROS': 'SUA ÁREA DE LEITURA'}</div><h1 class="page-title">${title}</h1><p>${mode==='livros'?'Explore os títulos disponíveis e escolha sua próxima leitura.':'Seus favoritos e seu progresso ficam salvos neste navegador.'}</p></div><div class="pill-row">${['Todos','Romance','Clássicos','Outros'].map(g=>`<button class="pill ${state.genre===g?'selected':''}" data-genre="${g}">${g}</button>`).join('')}</div><div class="section-heading"><span class="count">${arr.length} ${arr.length===1?'LIVRO':'LIVROS'} CARREGADOS${catalogTotal!==null&&mode==='livros'?' · fonte com '+catalogTotal+' registros (antes da seleção)' :''}</span><span class="mini-status">Obras históricas · confira a edição e os direitos da tradução</span></div>${arr.length?`<div class="book-grid">${arr.map(bookCard).join('')}</div>${mode==='livros'?`<div class="catalog-more">${catalogError?`<p class="mini-status">${escapeHTML(catalogError)}</p>`:''}${catalogMore?`<button class="primary" id="loadMoreBooks" ${catalogLoading?'disabled':''}>${catalogLoading?'Carregando livros…':'Carregar todos os livros disponíveis ↓'}</button>`:'<p class="mini-status">Você chegou ao fim dos livros disponíveis nesta fonte.</p>'}</div>`:''}`:`<div class="empty"><i>♡</i><h2>Nenhum livro por aqui ainda</h2><p>Explore outros títulos ou salve seus favoritos.</p><button class="secondary" data-view="livros">Explorar livros</button>${mode==='livros'&&catalogMore?`<button class="primary" id="loadMoreBooks">Carregar catálogo completo</button>`:''}</div>`}`}
+function catalog(mode){let arr=mode==='favoritos'?BOOKS.filter(b=>favorites.includes(b.id)):mode==='continuar'?BOOKS.filter(b=>progress[b.id]):BOOKS;let q=state.query.trim().toLocaleLowerCase('pt-BR');if(q)arr=arr.filter(b=>(b.title+' '+b.author+' '+b.genre).toLocaleLowerCase('pt-BR').includes(q));if(state.genre!=='Todos')arr=arr.filter(b=>b.genre===state.genre);let title=mode==='favoritos'?'Meus favoritos':mode==='continuar'?'Continuar lendo':'Biblioteca';return `<div class="intro"><div class="eyebrow">${mode==='livros'?'CATÁLOGO DE LIVROS': 'SUA ÁREA DE LEITURA'}</div><h1 class="page-title">${title}</h1><p>${mode==='livros'?'Explore os títulos disponíveis e escolha sua próxima leitura.':'Seus favoritos e seu progresso ficam salvos neste navegador.'}</p></div><div class="pill-row">${['Todos','Romance','Clássicos','Outros'].map(g=>`<button class="pill ${state.genre===g?'selected':''}" data-genre="${g}">${g}</button>`).join('')}</div><div class="section-heading"><span class="count">${arr.length} ${arr.length===1?'LIVRO':'LIVROS'} CARREGADOS${catalogTotal!==null&&mode==='livros'?' · fonte com '+catalogTotal+' registros (antes da seleção)' :''}</span><span class="mini-status">Obras históricas · confira a edição e os direitos da tradução</span></div>${arr.length?`<div class="book-grid">${arr.map(bookCard).join('')}</div>${mode==='livros'?`<div class="catalog-more">${catalogError?`<p class="mini-status" role="alert">${escapeHTML(catalogError)}</p>`:''}${catalogStatus?`<p class="mini-status" role="status">${escapeHTML(catalogStatus)}</p>`:''}${catalogMore?`<button class="primary" id="loadMoreBooks" ${catalogLoading&&catalogLoadAll?'disabled':''}>${catalogLoading?(catalogLoadAll?'Carregando catálogo…':'Continuar e carregar tudo ↓'):'Carregar todos os livros disponíveis ↓'}</button>`:'<p class="mini-status">Você chegou ao fim dos livros disponíveis nesta fonte.</p>'}</div>`:''}`:`<div class="empty"><i>♡</i><h2>Nenhum livro por aqui ainda</h2><p>Explore outros títulos ou salve seus favoritos.</p><button class="secondary" data-view="livros">Explorar livros</button>${mode==='livros'?`<div class="catalog-more">${catalogError?`<p class="mini-status" role="alert">${escapeHTML(catalogError)}</p>`:''}${catalogStatus?`<p class="mini-status" role="status">${escapeHTML(catalogStatus)}</p>`:''}${catalogMore?`<button class="primary" id="loadMoreBooks">${catalogLoading?"Continuar e carregar tudo":"Carregar todos os livros disponíveis"}</button>`:''}</div>`:''}</div>`}`}
 function detail(id){let b=bookIndex.get(Number(id));if(!b)return catalog('livros');return `<button class="back" data-view="livros">← Voltar à biblioteca</button><div class="detail">${bookCover(b)}<div><div class="eyebrow">LITERATURA EM PORTUGUÊS</div><h1>${escapeHTML(b.title)}</h1><p><b>${escapeHTML(b.author)}</b> · ${b.year}</p><div class="meta"><span class="tag">${b.genre}</span><span class="tag">Acesso gratuito</span><span class="tag">Obra histórica</span></div><p>${escapeHTML(b.desc)}</p><div class="notice">O texto utilizado vem do Project Gutenberg, cuja edição pode conservar a grafia de época. As edições do catálogo externo podem conter traduções protegidas: confira os direitos antes de redistribuir.</div><div style="display:flex;gap:10px;flex-wrap:wrap"><button class="primary" data-reader="${b.id}">${progress[b.id]?'Continuar leitura':'Começar a ler'} →</button><button class="secondary" data-fav="${b.id}">${favorites.includes(b.id)?'♥ Salvo':'♡ Favoritar'}</button><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Fonte original ↗</a></div></div></div>`}
 function showReader(id){const b=BOOKS.find(b=>b.id===Number(id));if(!b){navigate('livros');return}state.view='leitor';state.book=b.id;history.replaceState(null,'','#leitor/'+b.id);render();loadBook(b)}
 function reader(){const b=BOOKS.find(b=>b.id===Number(state.book));if(!b)return catalog('livros');return `<article class="reading-shell ${state.readerTheme==='paper'?'':state.readerTheme}"><div class="reader-text" id="readingText" style="--font-size:${state.font}px"><div class="loading">Preparando páginas...</div></div><div id="selectionTools" class="selection-tools" hidden><button id="saveSelection" type="button">Destacar</button><button id="saveStart" type="button">Marcar início</button></div></article><div class="reader-pagination"><button id="prevPage" class="secondary">← Anterior</button><span id="pageCounter" aria-live="polite">Preparando livro...</span><button id="nextPage" class="primary">Próxima →</button></div>`}
