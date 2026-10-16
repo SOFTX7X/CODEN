@@ -1,13 +1,13 @@
-# AURORA V1.15 — Catálogo próprio
+# AURORA V1.19 — Mais livros no catálogo local
 
-Projeto completo para GitHub + Vercel.
+Versão baseada na V1.18 que estava disponível na conversa. O leitor contínuo, as marcações e o layout foram preservados.
 
-- Catálogo incorporado ao `app.js`, com títulos reais confirmados no Project Gutenberg.
-- Metadados extras também em `data/catalog.json` para manutenção.
-- Listagem, pesquisa e `Ver mais livros` funcionam sem Gutendex ou qualquer API de catálogo.
-- A leitura continua dependendo da disponibilidade de arquivos de texto no Project Gutenberg (`api/book.js`). **Os textos completos não estão incorporados ao ZIP.**
-- Capas originais não são garantidas; a capa tipográfica própria sempre aparece.
-- Preserva lógica de paginação de V1.11/1.13.
-- O acervo está limitado aos títulos realmente catalogados, não representa todos os livros da internet.
-- Para adicionar livros, registrar ID válido e obra com direitos adequados no `app.js` e na allowlist de `api/book.js`; evite inventar identificadores.
-- Não precisa de Supabase nem de PC ligado como servidor.
+- 38 livros anteriores + 25 obras acrescentadas = 63 títulos identificados no código.
+- Novos títulos confirmados individualmente nas páginas do Project Gutenberg.
+- Catálogo listado no JavaScript e em `data/catalog.json`, sem API externa para a listagem.
+- Identificadores adicionados à lista permitida em `api/book.js`.
+- O texto completo não está dentro do ZIP: continua vindo do Gutenberg por meio da função da Vercel. A abertura depende da disponibilidade do arquivo e da rede.
+- Capas próprias continuam funcionando, mas não houve garantia de capas originais.
+- Não foram realizados testes ponta a ponta no site publicado.
+
+Os livros são edições históricas, com ortografia preservada. Antes de republicar em outra forma, conferir direitos da edição e eventuais traduções no Brasil.

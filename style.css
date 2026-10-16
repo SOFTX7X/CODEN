@@ -44,3 +44,6 @@ body.reading-mode .reader-pagination{display:none!important}
 body.reading-mode .reader-section{margin:0;padding:0}
 body.reading-mode .reader-section + .reader-section{margin-top:0}
 body.reading-mode .reader-section p:first-child{margin-top:0}
+
+/* V1.18: leitura integral, contínua e sem moldura */
+body.reading-mode .reader-text .chapter-heading{font-weight:700;font-size:1.22em;text-indent:0;margin:1.8em 0 .7em}body.reading-mode .reader-section{overflow:visible;max-height:none;height:auto;content-visibility:visible}body.reading-mode .reader-text{overflow:visible;max-height:none;height:auto}
