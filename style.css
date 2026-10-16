@@ -28,3 +28,13 @@
 .reading-start{outline:2px solid #b7bb6c;outline-offset:8px;border-radius:4px}
 .reader-text{white-space:normal;overflow-wrap:break-word}
 .reader-text p{white-space:pre-wrap}
+
+/* V1.16 — leitura aberta, sem moldura ou folha artificial */
+body.reading-mode main{max-width:none;padding:0 clamp(16px,2.8vw,54px) 36px}
+body.reading-mode .reading-shell{width:100%;max-width:none;margin:0;padding:clamp(20px,3vw,50px) 0 12px;min-height:0;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+body.reading-mode .reader-text{width:100%;max-width:none;line-height:1.85}
+body.reading-mode .reader-pagination{max-width:none;margin:24px 0 32px;padding:16px 0;border-top:1px solid var(--line)}
+body.reading-mode #pageCounter{display:none}
+body.reading-mode .reading-shell.sepia{background:transparent!important}
+body.reading-mode .reading-shell.night{background:transparent!important}
+@media(max-width:560px){body.reading-mode main{padding:0 17px 25px}body.reading-mode .reading-shell{padding:19px 0 8px}body.reading-mode .reader-text{font-size:var(--font-size,19px);line-height:1.8}}
