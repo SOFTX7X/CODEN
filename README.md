@@ -36,3 +36,7 @@ A UI lista 66 livros. A API experimental usa `bible-api.com` com `translation=al
 ## Melhorias futuras
 
 Importar mais textos revisados, disponibilizar leitura offline, implementar busca no corpo das obras, adicionar sincronização opcional e revisão de acessibilidade. Não há módulo de publicação por autores nesta versão.
+
+
+## V1.5 — Ampliação do catálogo
+O catálogo em português é consultado pelo endpoint `api/catalog.js` via Gutendex, em páginas. O filtro seleciona itens declarados sem copyright pela fonte, com autores falecidos até 1955 e sem tradutores catalogados. Esse filtro não substitui revisão jurídica da edição. O total apresentado é o total da busca na fonte, e NÃO o número de livros aptos após filtragem. Capas usam `image/jpeg` quando disponibilizado, com arte tipográfica fallback. `api/book.js` valida itens externos antes de disponibilizar o texto. Dependência de serviços externos e limites da Vercel permanecem.
