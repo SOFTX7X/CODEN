@@ -87,25 +87,48 @@ function removeEditorialPages(text){
   return marker?normalized.slice(marker.index+marker[0].length).trim():normalized.trim();
 }
 function splitBookPages(text){
- const normalized=removeEditorialPages(text).replace(/\r/g,'').trim();
- // A página só termina na fronteira de um parágrafo ou frase completa.
+ const normalized=removeEditorialPages(text).replace(/\r/g,'');
+ // Mantém todos os parágrafos do texto na ordem original. Não remove finais
+ // de capítulos e não toma índices/sumários como limites da narrativa.
  const blocks=normalized.split(/\n\s*\n+/).map(v=>v.trim()).filter(Boolean);
- const pages=[];let page=[],size=0;
- function push(){if(page.length){pages.push(page);page=[];size=0;}}
- for(const block of blocks){
-  let pieces=[block];
-  if(block.length>2600){
-   const sentences=block.match(/[^.!?…]+(?:[.!?…]+[”"'»)]*|$)/gu)||[block];
-   pieces=[];let part='';
-   for(const sentence of sentences){
-    if(part.length+sentence.length>1900&&part){pieces.push(part.trim());part='';}
-    part+=sentence;
-   }
-   if(part.trim())pieces.push(part.trim());
-  }
-  for(const piece of pieces){if(size+piece.length>2300&&page.length)push();page.push(piece);size+=piece.length;}
+ const pages=[];
+ let page=[],length=0;
+ const flush=()=>{if(page.length){pages.push(page);page=[];length=0;}};
+ const normHeading=v=>v.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+ const chapterHeading=/^(?:(?:capitulo|cap\.|chapter|parte|livro)\s+(?:[ivxlcdm]+|\d+)(?:\s*[-–—:.]\s*.+)?|(?:prologo|epilogo|prefacio))$/i;
+ function isChapter(block){
+  const single=block.replace(/\s+/g,' ').trim();
+  return single.length<=110&&chapterHeading.test(normHeading(single));
  }
- push();return pages;
+ // Somente texto longo demais para uma página é dividido, de preferência em
+ // término de frase. A função não descarta caracteres do conteúdo.
+ function splitLong(block,max=2050){
+  if(block.length<=max)return [block];
+  const result=[];let remaining=block;
+  while(remaining.length>max){
+   let at=-1;
+   for(const match of remaining.slice(0,max+1).matchAll(/[.!?…]+[”"'»)]*\s+/g)){
+    if(match.index>Math.floor(max*.4))at=match.index+match[0].length;
+   }
+   if(at<0){const gap=remaining.lastIndexOf(' ',max);at=gap>Math.floor(max*.4)?gap+1:max;}
+   result.push(remaining.slice(0,at).trimEnd());
+   remaining=remaining.slice(at).trimStart();
+  }
+  if(remaining)result.push(remaining);
+  return result;
+ }
+ for(const block of blocks){
+  if(isChapter(block)){
+   // Um título de capítulo nunca divide a última frase do capítulo anterior.
+   flush();page.push(block);length=block.length;continue;
+  }
+  for(const piece of splitLong(block)){
+   if(page.length&&length+piece.length>2300)flush();
+   page.push(piece);length+=piece.length;
+  }
+ }
+ flush();
+ return pages;
 }
 function paintParagraph(text,para){
  const marks=(highlights[state.book]||[]).filter(m=>m.page===readerPage&&m.para===para);
@@ -130,7 +153,7 @@ function openReaderPage(index,scroll=true){
  // O progresso continua salvo automaticamente, sem barra visual.
  if(scroll)window.scrollTo({top:0,behavior:'instant'});
 }
-async function loadBook(b){let element=$('#readingText');try{let text=readCache.get(b.id);if(!text){let response=await fetch('/api/book?id='+b.id);if(!response.ok)throw Error('remote');let data=await response.json();text=data.text;if(!text)throw Error('empty');readCache.set(b.id,text)}if(state.view!=='leitor'||state.book!==b.id)return;readerPages=splitBookPages(text);if(!readerPages.length)throw Error('empty');const previous=progress[b.id];const storedVersion=load('textEdition_'+b.id,1);const savedPage=storedVersion===4&&Number.isInteger(previous?.page)?previous.page:0;store('textEdition_'+b.id,4);openReaderPage(savedPage,false);if(bookmarks[b.id]?.[0]?.page!==undefined)goToMarkedStart()}catch{if(state.view==='leitor'&&state.book===b.id)element.innerHTML=`<div class="empty"><i>☁</i><h2>Não conseguimos abrir este livro agora</h2><p>O leitor depende da função /api/book publicada na Vercel e do Project Gutenberg.</p><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Ler na fonte ↗</a><button class="secondary" data-reader="${b.id}">Tentar novamente</button></div>`}}
+async function loadBook(b){let element=$('#readingText');try{let text=readCache.get(b.id);if(!text){let response=await fetch('/api/book?id='+b.id);if(!response.ok)throw Error('remote');let data=await response.json();text=data.text;if(!text)throw Error('empty');readCache.set(b.id,text)}if(state.view!=='leitor'||state.book!==b.id)return;readerPages=splitBookPages(text);if(!readerPages.length)throw Error('empty');const previous=progress[b.id];const storedVersion=load('textEdition_'+b.id,1);const savedPage=storedVersion===5&&Number.isInteger(previous?.page)?previous.page:0;store('textEdition_'+b.id,5);openReaderPage(savedPage,false);if(bookmarks[b.id]?.[0]?.page!==undefined)goToMarkedStart()}catch{if(state.view==='leitor'&&state.book===b.id)element.innerHTML=`<div class="empty"><i>☁</i><h2>Não conseguimos abrir este livro agora</h2><p>O leitor depende da função /api/book publicada na Vercel e do Project Gutenberg.</p><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Ler na fonte ↗</a><button class="secondary" data-reader="${b.id}">Tentar novamente</button></div>`}}
 function showMarkPanel(){const panel=$('#markPanel');if(!panel)return;panel.hidden=!panel.hidden;if(panel.hidden)return;const marks=bookmarks[state.book]||[],quotes=highlights[state.book]||[];panel.innerHTML=`<h3>Suas marcações</h3><div class="mark-list">${marks.map((p,i)=>`<div><button class="mark-link" data-go-page="${typeof p==='object'?p.page:p}">🔖 ${typeof p==='object'?'Retomar do trecho marcado':'Página '+(p+1)}</button><button class="remove-mark" data-unmark="${i}" aria-label="Apagar marcação">×</button></div>`).join('')}${quotes.map((x,i)=>`<div><button class="mark-link" data-go-page="${x.page}">❝ ${escapeHTML(x.text.slice(0,110))}${x.text.length>110?'…':''} <small>· pág. ${x.page+1}</small></button><button class="remove-mark" data-unhighlight="${i}" aria-label="Apagar destaque">×</button></div>`).join('')||(!marks.length?'<p>Nenhuma marcação ainda. Salve uma página ou selecione um trecho do livro.</p>':'')}</div>`}
 let currentSelection=null;
 function locateSelection(){
