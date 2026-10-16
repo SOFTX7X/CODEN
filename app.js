@@ -87,49 +87,36 @@ function removeEditorialPages(text){
   return marker?normalized.slice(marker.index+marker[0].length).trim():normalized.trim();
 }
 function splitBookPages(text){
+ // Cada página é uma seção/capítulo completo. Nunca dividir por caracteres.
  const normalized=removeEditorialPages(text).replace(/\r/g,'');
- // Um cabeçalho pode aparecer após uma quebra simples de linha (não apenas
- // após uma linha em branco). Separe-o antes de montar as páginas.
  const chapterLine=/^(?:(?:CAP[IÍ]TULO|CAP\.|CHAPTER|PARTE|LIVRO)\s+(?:[IVXLCDM]+|\d+)(?:\s*[-–—:.]\s*[^\n]{1,80})?|(?:[IVXLCDM]{1,10}|\d{1,3})[.º°:]|PR[ÓO]LOGO|EP[ÍI]LOGO)$/i;
  const lines=normalized.split('\n');
- const blocks=[];let current=[];
- const finish=()=>{if(current.length){const t=current.join('\n').trim();if(t)blocks.push({text:t,heading:false});current=[];}};
- for(let i=0;i<lines.length;i++){
-  const line=lines[i].trim();
-  if(!line){finish();continue;}
-  const heading=line.length<=110&&chapterLine.test(line.normalize('NFD').replace(/[\u0300-\u036f]/g,''));
-  if(heading){
-   finish();
-   // Somente títulos isolados na própria linha; nunca um numeral no corpo da frase.
-   blocks.push({text:line,heading:true});
-  }else current.push(line);
+ const pages=[];
+ let section=[],paragraph=[];
+ const pushParagraph=()=>{
+  if(!paragraph.length)return;
+  const value=paragraph.join(' ').replace(/\s+/g,' ').trim();
+  if(value)section.push(value);
+  paragraph=[];
+ };
+ const pushSection=()=>{
+  pushParagraph();
+  if(section.length)pages.push(section);
+  section=[];
+ };
+ for(const raw of lines){
+  const line=raw.trim();
+  if(!line){pushParagraph();continue;}
+  const simplified=line.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const isHeading=line.length<=110&&chapterLine.test(simplified);
+  if(isHeading){
+   // A nova seção começa exatamente no título do capítulo.
+   pushSection();
+   section.push(line);
+  }else paragraph.push(line);
  }
- finish();
- const pages=[];let page=[],length=0;
- const flush=()=>{if(page.length){pages.push(page);page=[];length=0;}};
- function splitLong(block,max=2050){
-  if(block.length<=max)return [block];
-  const result=[];let remaining=block;
-  while(remaining.length>max){
-   let at=-1;
-   for(const match of remaining.slice(0,max+1).matchAll(/[.!?…]+[”"'»)]*\s+/g)){
-    if(match.index>Math.floor(max*.4))at=match.index+match[0].length;
-   }
-   if(at<0){const gap=remaining.lastIndexOf(' ',max);at=gap>Math.floor(max*.4)?gap+1:max;}
-   result.push(remaining.slice(0,at).trimEnd());
-   remaining=remaining.slice(at).trimStart();
-  }
-  if(remaining)result.push(remaining);
-  return result;
- }
- for(const block of blocks){
-  if(block.heading){flush();page.push(block.text);length=block.text.length;continue;}
-  for(const piece of splitLong(block.text)){
-   if(page.length&&length+piece.length>2300)flush();
-   page.push(piece);length+=piece.length;
-  }
- }
- flush();return pages;
+ pushSection();
+ return pages;
 }
 function paintParagraph(text,para){
  const marks=(highlights[state.book]||[]).filter(m=>m.page===readerPage&&m.para===para);
@@ -154,7 +141,7 @@ function openReaderPage(index,scroll=true){
  // O progresso continua salvo automaticamente, sem barra visual.
  if(scroll)window.scrollTo({top:0,behavior:'instant'});
 }
-async function loadBook(b){let element=$('#readingText');try{let text=readCache.get(b.id);if(!text){let response=await fetch('/api/book?id='+b.id);if(!response.ok)throw Error('remote');let data=await response.json();text=data.text;if(!text)throw Error('empty');readCache.set(b.id,text)}if(state.view!=='leitor'||state.book!==b.id)return;readerPages=splitBookPages(text);if(!readerPages.length)throw Error('empty');const previous=progress[b.id];const storedVersion=load('textEdition_'+b.id,1);const savedPage=storedVersion===6&&Number.isInteger(previous?.page)?previous.page:0;store('textEdition_'+b.id,6);openReaderPage(savedPage,false);if(bookmarks[b.id]?.[0]?.page!==undefined)goToMarkedStart()}catch{if(state.view==='leitor'&&state.book===b.id)element.innerHTML=`<div class="empty"><i>☁</i><h2>Não conseguimos abrir este livro agora</h2><p>O leitor depende da função /api/book publicada na Vercel e do Project Gutenberg.</p><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Ler na fonte ↗</a><button class="secondary" data-reader="${b.id}">Tentar novamente</button></div>`}}
+async function loadBook(b){let element=$('#readingText');try{let text=readCache.get(b.id);if(!text){let response=await fetch('/api/book?id='+b.id);if(!response.ok)throw Error('remote');let data=await response.json();text=data.text;if(!text)throw Error('empty');readCache.set(b.id,text)}if(state.view!=='leitor'||state.book!==b.id)return;readerPages=splitBookPages(text);if(!readerPages.length)throw Error('empty');const previous=progress[b.id];const storedVersion=load('textEdition_'+b.id,1);const savedPage=storedVersion===7&&Number.isInteger(previous?.page)?previous.page:0;store('textEdition_'+b.id,7);openReaderPage(savedPage,false);if(bookmarks[b.id]?.[0]?.page!==undefined)goToMarkedStart()}catch{if(state.view==='leitor'&&state.book===b.id)element.innerHTML=`<div class="empty"><i>☁</i><h2>Não conseguimos abrir este livro agora</h2><p>O leitor depende da função /api/book publicada na Vercel e do Project Gutenberg.</p><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Ler na fonte ↗</a><button class="secondary" data-reader="${b.id}">Tentar novamente</button></div>`}}
 function showMarkPanel(){const panel=$('#markPanel');if(!panel)return;panel.hidden=!panel.hidden;if(panel.hidden)return;const marks=bookmarks[state.book]||[],quotes=highlights[state.book]||[];panel.innerHTML=`<h3>Suas marcações</h3><div class="mark-list">${marks.map((p,i)=>`<div><button class="mark-link" data-go-page="${typeof p==='object'?p.page:p}">🔖 ${typeof p==='object'?'Retomar do trecho marcado':'Página '+(p+1)}</button><button class="remove-mark" data-unmark="${i}" aria-label="Apagar marcação">×</button></div>`).join('')}${quotes.map((x,i)=>`<div><button class="mark-link" data-go-page="${x.page}">❝ ${escapeHTML(x.text.slice(0,110))}${x.text.length>110?'…':''} <small>· pág. ${x.page+1}</small></button><button class="remove-mark" data-unhighlight="${i}" aria-label="Apagar destaque">×</button></div>`).join('')||(!marks.length?'<p>Nenhuma marcação ainda. Salve uma página ou selecione um trecho do livro.</p>':'')}</div>`}
 let currentSelection=null;
 function locateSelection(){
