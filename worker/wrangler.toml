@@ -1,4 +1,0 @@
-name = "coden-video-api"
-main = "index.js"
-compatibility_date = "2026-10-01"
-# Route this Worker only for codenoficial.online/api/videos in your Cloudflare dashboard.
