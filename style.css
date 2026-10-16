@@ -38,3 +38,9 @@ body.reading-mode #pageCounter{display:none}
 body.reading-mode .reading-shell.sepia{background:transparent!important}
 body.reading-mode .reading-shell.night{background:transparent!important}
 @media(max-width:560px){body.reading-mode main{padding:0 17px 25px}body.reading-mode .reading-shell{padding:19px 0 8px}body.reading-mode .reader-text{font-size:var(--font-size,19px);line-height:1.8}}
+
+/* V1.17 — leitura contínua sem botões ou paginação artificial */
+body.reading-mode .reader-pagination{display:none!important}
+body.reading-mode .reader-section{margin:0;padding:0}
+body.reading-mode .reader-section + .reader-section{margin-top:0}
+body.reading-mode .reader-section p:first-child{margin-top:0}
