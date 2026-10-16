@@ -1,1 +1,1 @@
-{"functions":{"api/book.js":{"maxDuration":10},"api/bible.js":{"maxDuration":10},"api/catalog.js":{"maxDuration":10}},"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"},{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"}]}]}
+{"functions":{"api/book.js":{"maxDuration":10},"api/bible.js":{"maxDuration":10},"api/catalog.js":{"maxDuration":30}},"headers":[{"source":"/(.*)","headers":[{"key":"X-Content-Type-Options","value":"nosniff"},{"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"}]}]}
