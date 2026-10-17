@@ -119,6 +119,44 @@ function splitBookPages(text){
  }
  return pages;
 }
+function parseIllustratedBook(html,baseUrl){
+ // DOMParser is inert. Never insert source HTML directly into the AURORA DOM.
+ const doc=new DOMParser().parseFromString(html,'text/html');
+ for(const bad of doc.querySelectorAll('script,style,noscript,iframe,object,embed,svg,form,nav,aside,footer,header, .pg-boilerplate, #pg-header, #pg-footer, .x-ebookmaker-pgheader, .x-ebookmaker-pgfooter'))bad.remove();
+ const body=doc.querySelector('body');if(!body)return [];
+ // Evitar índices e metadados editoriais antes do começo da obra.
+ const root=body.querySelector('main, #text, .body')||body;
+ const nodes=[...root.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div.figcenter,figure,img')];
+ const pages=[];let seen=new Set();let entered=false;
+ for(const node of nodes){
+  if(node.tagName==='IMG' && node.closest('figure,.figcenter'))continue;
+  if(node.closest('nav, .toc, #toc, .contents, .pg-boilerplate'))continue;
+  const isImage=node.matches('img,figure,div.figcenter');
+  let img=isImage?(node.matches('img')?node:node.querySelector('img')):null;
+  if(img){
+   const raw=img.getAttribute('src')||img.getAttribute('data-src');if(!raw)continue;
+   let url;try{url=new URL(raw,baseUrl)}catch{continue}
+   if(url.protocol!=='https:'||!['www.gutenberg.org','gutenberg.org','images.gutenberg.org'].includes(url.hostname))continue;
+   if(/cover|titlepage|frontispiece/i.test(raw) && !entered)continue;
+   const key='img:'+url.href;if(seen.has(key))continue;seen.add(key);
+   pages.push({paragraphs:[''],image:url.href,alt:(img.getAttribute('alt')||'Ilustração do livro').slice(0,160),isHeading:false});continue;
+  }
+  if(node.closest('figure,.figcenter'))continue;
+  if(node.matches('p')&&node.querySelector('p'))continue;
+  const text=(node.textContent||'').replace(/\s+/g,' ').trim();
+  if(!text||text.length>7000)continue;
+  if(/^(project gutenberg|produced by|transcriber's note|e-text prepared|ebook #|copyright|all rights reserved)/i.test(text))continue;
+  const heading=/^H[1-6]$/.test(node.tagName);
+  if(!entered){
+   if(heading&&(/cap[ií]tulo|chapter|parte|pr[oó]logo|^[ivxlcdm]+[.º:]?\b/i.test(text)))entered=true;
+   else if(text.length>180&&node.matches('p'))entered=true;
+   else continue;
+  }
+  const key='txt:'+text;if(seen.has(key)&&text.length>40)continue;seen.add(key);
+  pages.push({paragraphs:[text],isHeading:heading});
+ }
+ return pages;
+}
 function paintParagraph(text,para,page=readerPage){
  const marks=(highlights[state.book]||[]).filter(m=>m.page===page&&m.para===para);
  const intervals=[];
@@ -139,7 +177,7 @@ function openReaderPage(index,scroll=true){
 }
 function renderContinuousBook(){
  const el=$('#readingText');if(!el)return;
- el.innerHTML=readerPages.map((page,i)=>`<section class="reader-section" data-reader-page="${i}">${page.paragraphs.map((t,j)=>`<p class="${page.isHeading?'chapter-heading':''}" data-para="${j}">${paintParagraph(t.replace(/\n/g,' ').replace(/\s+/g,' '),j,i)}</p>`).join('')}</section>`).join('');
+ el.innerHTML=readerPages.map((page,i)=>`<section class="reader-section" data-reader-page="${i}">${page.image?`<figure class="reader-illustration"><img src="${escapeHTML(page.image)}" alt="${escapeHTML(page.alt||'Ilustração')}" loading="lazy" referrerpolicy="no-referrer"></figure>`:page.paragraphs.map((t,j)=>`<p class="${page.isHeading?'chapter-heading':''}" data-para="${j}">${paintParagraph(t.replace(/\n/g,' ').replace(/\s+/g,' '),j,i)}</p>`).join('')}</section>`).join('');
  $('#selectionTools').hidden=true;
  const saved=progress[state.book];
  if(saved?.edition===18&&Number.isFinite(saved.scrollY))window.scrollTo(0,saved.scrollY);
@@ -154,7 +192,7 @@ window.addEventListener('scroll',()=>{
  readerPage=current;
  progress[state.book]={page:current,scrollY:window.scrollY,edition:18,pct:Math.round((current+1)/readerPages.length*100),at:now};store('progress',progress);
 },{passive:true});
-async function loadBook(b){let element=$('#readingText');try{let text=readCache.get(b.id);if(!text){let response=await fetch('/api/book?id='+b.id);if(!response.ok)throw Error('remote');let data=await response.json();text=data.text;if(!text)throw Error('empty');readCache.set(b.id,text)}if(state.view!=='leitor'||state.book!==b.id)return;readerPages=splitBookPages(text);if(!readerPages.length)throw Error('empty');const previous=progress[b.id];const storedVersion=load('textEdition_'+b.id,1);store('textEdition_'+b.id,18);renderContinuousBook();if(bookmarks[b.id]?.[0]?.page!==undefined&&previous?.edition!==18)goToMarkedStart()}catch{if(state.view==='leitor'&&state.book===b.id)element.innerHTML=`<div class="empty"><i>☁</i><h2>Não conseguimos abrir este livro agora</h2><p>O leitor depende da função /api/book publicada na Vercel e do Project Gutenberg.</p><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Ler na fonte ↗</a><button class="secondary" data-reader="${b.id}">Tentar novamente</button></div>`}}
+async function loadBook(b){let element=$('#readingText');try{let data=readCache.get(b.id);if(!data){let response=await fetch('/api/book?id='+b.id);if(!response.ok)throw Error('remote');data=await response.json();if(!data.html&&!data.text)throw Error('empty');readCache.set(b.id,data)}if(state.view!=='leitor'||state.book!==b.id)return;readerPages=data.format==='html'?parseIllustratedBook(data.html,data.baseUrl):splitBookPages(data.text);if(!readerPages.length&&data.text)readerPages=splitBookPages(data.text);if(!readerPages.length)throw Error('empty');const previous=progress[b.id];const storedVersion=load('textEdition_'+b.id,1);store('textEdition_'+b.id,18);renderContinuousBook();if(bookmarks[b.id]?.[0]?.page!==undefined&&previous?.edition!==18)goToMarkedStart()}catch{if(state.view==='leitor'&&state.book===b.id)element.innerHTML=`<div class="empty"><i>☁</i><h2>Não conseguimos abrir este livro agora</h2><p>O leitor depende da função /api/book publicada na Vercel e do Project Gutenberg.</p><a class="secondary" href="https://www.gutenberg.org/ebooks/${b.id}" target="_blank" rel="noopener noreferrer">Ler na fonte ↗</a><button class="secondary" data-reader="${b.id}">Tentar novamente</button></div>`}}
 function showMarkPanel(){const panel=$('#markPanel');if(!panel)return;panel.hidden=!panel.hidden;if(panel.hidden)return;const marks=bookmarks[state.book]||[],quotes=highlights[state.book]||[];panel.innerHTML=`<h3>Suas marcações</h3><div class="mark-list">${marks.map((p,i)=>`<div><button class="mark-link" data-go-page="${typeof p==='object'?p.page:p}">🔖 ${typeof p==='object'?'Retomar do trecho marcado':'Página '+(p+1)}</button><button class="remove-mark" data-unmark="${i}" aria-label="Apagar marcação">×</button></div>`).join('')}${quotes.map((x,i)=>`<div><button class="mark-link" data-go-page="${x.page}">❝ ${escapeHTML(x.text.slice(0,110))}${x.text.length>110?'…':''} <small>· pág. ${x.page+1}</small></button><button class="remove-mark" data-unhighlight="${i}" aria-label="Apagar destaque">×</button></div>`).join('')||(!marks.length?'<p>Nenhuma marcação ainda. Salve uma página ou selecione um trecho do livro.</p>':'')}</div>`}
 let currentSelection=null;
 function locateSelection(){

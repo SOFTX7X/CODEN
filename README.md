@@ -1,13 +1,5 @@
-# AURORA V1.19 — Mais livros no catálogo local
+AURORA V1.20 — edição ilustrada
 
-Versão baseada na V1.18 que estava disponível na conversa. O leitor contínuo, as marcações e o layout foram preservados.
+Prioriza HTML ilustrado do Project Gutenberg e mantém texto simples como alternativa. Imagens são mostradas entre os parágrafos quando a edição HTML da obra as disponibiliza. Metadados e índices podem variar por edição. O leitor nunca executa HTML fornecido pela fonte: extrai somente texto e URLs de imagens do domínio Gutenberg.
 
-- 38 livros anteriores + 25 obras acrescentadas = 63 títulos identificados no código.
-- Novos títulos confirmados individualmente nas páginas do Project Gutenberg.
-- Catálogo listado no JavaScript e em `data/catalog.json`, sem API externa para a listagem.
-- Identificadores adicionados à lista permitida em `api/book.js`.
-- O texto completo não está dentro do ZIP: continua vindo do Gutenberg por meio da função da Vercel. A abertura depende da disponibilidade do arquivo e da rede.
-- Capas próprias continuam funcionando, mas não houve garantia de capas originais.
-- Não foram realizados testes ponta a ponta no site publicado.
-
-Os livros são edições históricas, com ortografia preservada. Antes de republicar em outra forma, conferir direitos da edição e eventuais traduções no Brasil.
+Se a edição não tiver ilustrações, a leitura continua apenas em texto. Testar na Vercel antes de publicar para usuários.

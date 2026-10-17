@@ -3,12 +3,28 @@ export default async function handler(req,res){
  const id=Number(req.query.id);if(!Number.isInteger(id)||id<=0||id>1000000)return res.status(400).json({error:'Livro inválido.'});
  if(!IDS.has(id))return res.status(404).json({error:'Livro não consta no catálogo local.'});
  try{
+  // Preferir HTML ilustrado; a versão TXT remove todas as imagens.
+  const htmlUrls=[
+   `https://www.gutenberg.org/cache/epub/${id}/pg${id}-images.html`,
+   `https://www.gutenberg.org/files/${id}/${id}-h/${id}-h.htm`,
+   `https://www.gutenberg.org/cache/epub/${id}/pg${id}.html`
+  ];
+  for(const url of htmlUrls){
+   try{
+    const r=await fetch(url,{signal:AbortSignal.timeout(4500),headers:{'User-Agent':'AuroraLeituras/1.0'}});
+    if(!r.ok)continue;
+    const html=await r.text();
+    if(html.length<2000||html.length>3500000||!/<body\b/i.test(html))continue;
+    res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');
+    return res.status(200).json({format:'html',html,baseUrl:url,source:`https://www.gutenberg.org/ebooks/${id}`});
+   }catch{}
+  }
   const urls=[`https://www.gutenberg.org/cache/epub/${id}/pg${id}.txt`,`https://www.gutenberg.org/ebooks/${id}.txt.utf-8`];let value='';
-  for(const url of urls){const response=await fetch(url,{headers:{'User-Agent':'AuroraLeituras/1.0 (biblioteca de obras em dominio publico)'},signal:AbortSignal.timeout(7500)});if(response.ok){value=await response.text();break;}}
+  for(const url of urls){try{const response=await fetch(url,{signal:AbortSignal.timeout(6500)});if(response.ok){value=await response.text();break;}}catch{}}
   if(!value)throw Error('Texto indisponível na fonte neste momento.');
-  if(value.length>2000000)throw Error('Arquivo grande demais para esta versão.');
+  if(value.length>4000000)throw Error('Arquivo grande demais para esta versão.');
   const start=value.search(/\*\*\* START OF (THE |THIS )?PROJECT GUTENBERG EBOOK/i);if(start>=0){const next=value.indexOf('\n',start);value=value.slice(next+1);}
   const end=value.search(/\*\*\* END OF (THE |THIS )?PROJECT GUTENBERG EBOOK/i);if(end>=0)value=value.slice(0,end);
-  res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');return res.status(200).json({text:value.trim(),source:`https://www.gutenberg.org/ebooks/${id}`});
+  res.setHeader('Cache-Control','public, s-maxage=86400, stale-while-revalidate=604800');return res.status(200).json({format:'text',text:value.trim(),source:`https://www.gutenberg.org/ebooks/${id}`});
  }catch(e){return res.status(502).json({error:'Não foi possível carregar a obra da fonte. Tente novamente ou leia no Project Gutenberg.'});}
 }

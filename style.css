@@ -47,3 +47,7 @@ body.reading-mode .reader-section p:first-child{margin-top:0}
 
 /* V1.18: leitura integral, contínua e sem moldura */
 body.reading-mode .reader-text .chapter-heading{font-weight:700;font-size:1.22em;text-indent:0;margin:1.8em 0 .7em}body.reading-mode .reader-section{overflow:visible;max-height:none;height:auto;content-visibility:visible}body.reading-mode .reader-text{overflow:visible;max-height:none;height:auto}
+
+/* Imagens originais inseridas entre os trechos da obra, sem moldura. */
+.reader-illustration{margin:1.8rem auto;text-align:center;max-width:100%;}
+.reader-illustration img{display:block;max-width:min(100%,850px);width:auto;height:auto;max-height:85vh;object-fit:contain;margin:auto;}
