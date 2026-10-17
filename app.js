@@ -120,42 +120,67 @@ function splitBookPages(text){
  return pages;
 }
 function parseIllustratedBook(html,baseUrl){
- // DOMParser is inert. Never insert source HTML directly into the AURORA DOM.
+ // Mantém a estrutura da edição: cada bloco de prosa, título e ilustração é
+ // processado exatamente uma vez e na ordem original do documento.
  const doc=new DOMParser().parseFromString(html,'text/html');
- for(const bad of doc.querySelectorAll('script,style,noscript,iframe,object,embed,svg,form,nav,aside,footer,header, .pg-boilerplate, #pg-header, #pg-footer, .x-ebookmaker-pgheader, .x-ebookmaker-pgfooter'))bad.remove();
- const body=doc.querySelector('body');if(!body)return [];
- // Evitar índices e metadados editoriais antes do começo da obra.
- const root=body.querySelector('main, #text, .body')||body;
- const nodes=[...root.querySelectorAll('h1,h2,h3,h4,h5,h6,p,div.figcenter,figure,img')];
- const pages=[];let seen=new Set();let entered=false;
- for(const node of nodes){
-  if(node.tagName==='IMG' && node.closest('figure,.figcenter'))continue;
-  if(node.closest('nav, .toc, #toc, .contents, .pg-boilerplate'))continue;
-  const isImage=node.matches('img,figure,div.figcenter');
-  let img=isImage?(node.matches('img')?node:node.querySelector('img')):null;
-  if(img){
-   const raw=img.getAttribute('src')||img.getAttribute('data-src');if(!raw)continue;
-   let url;try{url=new URL(raw,baseUrl)}catch{continue}
-   if(url.protocol!=='https:'||!['www.gutenberg.org','gutenberg.org','images.gutenberg.org'].includes(url.hostname))continue;
-   if(/cover|titlepage|frontispiece/i.test(raw) && !entered)continue;
-   const key='img:'+url.href;if(seen.has(key))continue;seen.add(key);
-   pages.push({paragraphs:[''],image:url.href,alt:(img.getAttribute('alt')||'Ilustração do livro').slice(0,160),isHeading:false});continue;
+ const body=doc.body;if(!body)return [];
+ const rejected='script,style,noscript,iframe,object,embed,svg,form,nav,footer,.pg-boilerplate,#pg-header,#pg-footer,.x-ebookmaker-pgheader,.x-ebookmaker-pgfooter,[role="navigation"],.toc,#toc,.contents,.table-of-contents';
+ for(const bad of doc.querySelectorAll(rejected))bad.remove();
+ // Não escolher apenas <main>: edições antigas costumam ter seu conteúdo fora dele.
+ const container=body;
+ const blocks=[];
+ const isHeading=el=>/^H[1-6]$/.test(el.tagName);
+ const isBlock=el=>/^(P|H[1-6]|PRE|BLOCKQUOTE|FIGURE|IMG|HR|LI)$/.test(el.tagName)||el.classList.contains('figcenter')||el.classList.contains('figleft')||el.classList.contains('figright');
+ const safeImage=img=>{
+  const src=img.getAttribute('src')||img.getAttribute('data-src');if(!src)return null;
+  try{const url=new URL(src,baseUrl);if(url.protocol!=='https:'||!['www.gutenberg.org','gutenberg.org','images.gutenberg.org'].includes(url.hostname))return null;return url.href}catch{return null}
+ };
+ const pushText=(el,heading=false)=>{
+  const text=(el.textContent||'').replace(/\u00a0/g,' ').replace(/[ \t\f\v]+/g,' ').replace(/\s*\n\s*/g,' ').trim();
+  if(!text)return;
+  blocks.push({paragraphs:[text],isHeading:heading});
+ };
+ // Recursão controlada: se um bloco é terminal, não processar seus filhos de novo.
+ function walk(el){
+  if(el.nodeType!==1)return;
+  if(el.matches(rejected)||el.closest('[hidden],[aria-hidden="true"]'))return;
+  const tag=el.tagName;
+  if(tag==='IMG'){
+   const url=safeImage(el);if(url)blocks.push({image:url,alt:(el.getAttribute('alt')||'Ilustração do livro').slice(0,160),paragraphs:[],isHeading:false});
+   return;
   }
-  if(node.closest('figure,.figcenter'))continue;
-  if(node.matches('p')&&node.querySelector('p'))continue;
-  const text=(node.textContent||'').replace(/\s+/g,' ').trim();
-  if(!text||text.length>7000)continue;
-  if(/^(project gutenberg|produced by|transcriber's note|e-text prepared|ebook #|copyright|all rights reserved)/i.test(text))continue;
-  const heading=/^H[1-6]$/.test(node.tagName);
-  if(!entered){
-   if(heading&&(/cap[ií]tulo|chapter|parte|pr[oó]logo|^[ivxlcdm]+[.º:]?\b/i.test(text)))entered=true;
-   else if(text.length>180&&node.matches('p'))entered=true;
-   else continue;
+  if(tag==='FIGURE'||el.classList.contains('figcenter')||el.classList.contains('figleft')||el.classList.contains('figright')){
+   for(const child of el.children)walk(child);
+   return;
   }
-  const key='txt:'+text;if(seen.has(key)&&text.length>40)continue;seen.add(key);
-  pages.push({paragraphs:[text],isHeading:heading});
+  if(isHeading(el)){pushText(el,true);return;}
+  if(['P','PRE','LI'].includes(tag)){
+   const images=[...el.querySelectorAll('img')];
+   if(!images.length){pushText(el);return;}
+   // Texto e ilustrações da mesma região são preservados.
+   const clone=el.cloneNode(true);clone.querySelectorAll('img').forEach(n=>n.remove());pushText(clone);
+   for(const img of images)walk(img);
+   return;
+  }
+  if(tag==='HR')return;
+  if(tag==='BLOCKQUOTE'){
+   if(el.querySelector('p,pre')){for(const child of el.children)walk(child)}
+   else pushText(el);
+   return;
+  }
+  // Divs, seções e outros containers: respeitar filhos em ordem.
+  if(el.children.length){for(const child of el.children)walk(child)}
+  else if(['DIV','SECTION'].includes(tag)&&el.textContent.trim())pushText(el);
  }
- return pages;
+ walk(container);
+ // Remover exclusivamente o boilerplate Gutenberg reconhecido no começo/fim.
+ const boiler=/^\s*(?:The Project Gutenberg eBook of|Project Gutenberg's|Produced by|Credits:|E-?text prepared by|\*\*\* START OF|\*\*\* END OF|End of (?:the )?Project Gutenberg)/i;
+ while(blocks.length&&blocks[0].paragraphs?.length&&boiler.test(blocks[0].paragraphs[0]))blocks.shift();
+ const footer=blocks.findIndex((block,i)=>i>Math.floor(blocks.length*.5)&&block.paragraphs?.some(t=>/^\s*\*\*\* END OF (?:THE|THIS) PROJECT GUTENBERG/i.test(t)));
+ if(footer>=0)blocks.length=footer;
+ // Títulos e índice histórico são preservados quando não houver fronteira segura.
+ // Excluir por heurística pode destruir capítulos legítimos.
+ return blocks;
 }
 function paintParagraph(text,para,page=readerPage){
  const marks=(highlights[state.book]||[]).filter(m=>m.page===page&&m.para===para);
